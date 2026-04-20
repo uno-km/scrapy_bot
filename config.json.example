@@ -1,0 +1,18 @@
+{
+    "BOT_TOKEN": "YOUR_BOT_TOKEN_HERE",
+    "DOWNLOAD_ROOT": "download",
+    "BOT_LOG_FILE": "bot_activity.log",
+    "MAX_FILE_SIZE_MB": 49.5,
+    "ALLOWED_USER_IDS": [123456789],
+    "HELP_TEXT": "Your Help Text Here",
+    "MANAGER": {
+        "SMTP_SERVER": "smtp.gmail.com",
+        "SMTP_PORT": 587,
+        "EMAIL_USER": "your_email@gmail.com",
+        "EMAIL_PASS": "your_app_password",
+        "RECEIVER_EMAIL": "target_email@gmail.com",
+        "BOT_FILE": "scrapy_bot.py",
+        "MAX_EMAIL_SIZE_MB": 20,
+        "MANAGER_LOG_FILE": "manager_history.log"
+    }
+}
