@@ -14,5 +14,5 @@
         "BOT_FILE": "scrapy_bot.py",
         "MAX_EMAIL_SIZE_MB": 20,
         "MANAGER_LOG_FILE": "manager_history.log"
-    }
+    }z
 }
