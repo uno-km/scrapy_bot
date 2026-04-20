@@ -15,52 +15,29 @@ from telegram.ext import (
     filters,
 )
 
-# ❗❗ BotFather에서 받은 토큰을 입력하세요
-BOT_TOKEN = "YOUR_NEW_TOKEN_HERE"
+# =====================================================================
+# [설정 로드 매커니즘]
+# =====================================================================
 
-DOWNLOAD_ROOT = "download"
-BOT_LOG_FILE = "bot_activity.log"
+def load_config():
+    """config.json 파일에서 설정을 불러옵니다."""
+    config_path = os.path.join(os.path.dirname(__file__), "config.json")
+    if not os.path.exists(config_path):
+        raise FileNotFoundError("config.json 파일을 찾을 수 없습니다. config.json.example을 참고하여 생성해주세요.")
+    
+    with open(config_path, "r", encoding="utf-8") as f:
+        return json.load(f)
 
-# 텔레그램 봇 API 최대 파일 크기 (50MB) - 여유를 두고 49.5MB로 설정
-MAX_FILE_SIZE = 49.5 * 1024 * 1024 
+# 설정값 초기화
+CONFIG = load_config()
 
-# 🔐 허용된 사용자 ID 리스트 (하드코딩 필수!)
-ALLOWED_USER_IDS = [] 
+BOT_TOKEN = CONFIG.get("BOT_TOKEN")
+DOWNLOAD_ROOT = CONFIG.get("DOWNLOAD_ROOT", "download")
+BOT_LOG_FILE = CONFIG.get("BOT_LOG_FILE", "bot_activity.log")
+MAX_FILE_SIZE = CONFIG.get("MAX_FILE_SIZE_MB", 49.5) * 1024 * 1024
+ALLOWED_USER_IDS = CONFIG.get("ALLOWED_USER_IDS", [])
+HELP_TEXT = CONFIG.get("HELP_TEXT", "도움말이 설정되지 않았습니다.")
 
-# ✨ 프리미엄 매뉴얼 텍스트
-HELP_TEXT = """
-✨ **GetItOut Bot 프리미엄 매뉴얼** ✨
-
-안녕하세요! 본 봇은 고화질 소셜 미디어 콘텐츠 다운로더입니다.
-허용된 프리미엄 사용자만 모든 기능을 이용하실 수 있습니다.
-
-🚀 **핵심 기능 안내**
-━━━━━━━━━━━━━━━━━━━━
-1️⃣ **틱톡 (TikTok)**
-   • 영상 링크 전달 시 즉시 다운로드 (워터마크 제거)
-   • `@아이디` 입력 시 해당 프로필의 최근 영상 100개 추출
-
-2️⃣ **인스타그램 (Instagram)**
-   • 릴스 / 게시물 링크 전달 시 즉시 다운로드
-   • 프로필 링크 전달 시 최근 게시물 100개 추출
-
-🛠 **정교한 사용 방법**
-━━━━━━━━━━━━━━━━━━━━
-• **간편 전송**: 단순히 링크를 채팅방에 복사+붙여넣기 하세요.
-• **자동 최적화**: 영상이 50MB를 초과하면 자동으로 저화질로 변환하여 전송을 시도합니다.
-• **답장 기능**: 결과물은 항상 사용자가 보낸 링크에 '답장' 형태로 전달됩니다.
-
-❓ **사용 가능 명령어**
-━━━━━━━━━━━━━━━━━━━━
-• `/help` - 지금 보고 계신 매뉴얼을 다시 불러옵니다.
-• `/start` - 봇 시작 및 접근 권한을 확인합니다.
-
-⚠️ **보안 및 정책**
-━━━━━━━━━━━━━━━━━━━━
-• 본 봇은 화이트리스트제로 운영됩니다. 
-• 등록되지 않은 아이디는 모든 요청이 무시됩니다.
-• 서버 용량 확보를 위해 매일 새벽 데이터 백업 및 정리가 수행됩니다.
-"""
 
 queue = asyncio.Queue()
 workers = []

@@ -12,18 +12,33 @@ from email.mime.base import MIMEBase
 from email import encoders
 
 # =====================================================================
-# [설정 정보] - 사용 환경에 맞게 필수로 수정해주세요!
+# [설정 로드 매커니즘]
 # =====================================================================
-SMTP_SERVER = "smtp.gmail.com"        
-SMTP_PORT = 587                       
-EMAIL_USER = "your_email@gmail.com"   
-EMAIL_PASS = "your_app_password"      
-RECEIVER_EMAIL = "target_email@gmail.com" 
-BOT_FILE = "scrapy_bot.py"            
-DOWNLOAD_ROOT = "download"            
-MAX_EMAIL_SIZE = 20 * 1024 * 1024  # 20MB 단위 분할
-MANAGER_LOG_FILE = "manager_history.log"
-# =====================================================================
+
+def load_config():
+    """config.json 파일에서 설정을 불러옵니다."""
+    config_path = os.path.join(os.path.dirname(__file__), "config.json")
+    if not os.path.exists(config_path):
+        raise FileNotFoundError("config.json 파일을 찾을 수 없습니다. config.json.example을 참고하여 생성해주세요.")
+    
+    with open(config_path, "r", encoding="utf-8") as f:
+        return json.load(f)
+
+# 설정값 초기화
+CONFIG_ALL = load_config()
+CONFIG_BOT = CONFIG_ALL
+CONFIG_MGR = CONFIG_ALL.get("MANAGER", {})
+
+SMTP_SERVER = CONFIG_MGR.get("SMTP_SERVER", "smtp.gmail.com")
+SMTP_PORT = CONFIG_MGR.get("SMTP_PORT", 587)
+EMAIL_USER = CONFIG_MGR.get("EMAIL_USER")
+EMAIL_PASS = CONFIG_MGR.get("EMAIL_PASS")
+RECEIVER_EMAIL = CONFIG_MGR.get("RECEIVER_EMAIL")
+BOT_FILE = CONFIG_MGR.get("BOT_FILE", "scrapy_bot.py")
+DOWNLOAD_ROOT = CONFIG_BOT.get("DOWNLOAD_ROOT", "download")
+MAX_EMAIL_SIZE = CONFIG_MGR.get("MAX_EMAIL_SIZE_MB", 20) * 1024 * 1024
+MANAGER_LOG_FILE = CONFIG_MGR.get("MANAGER_LOG_FILE", "manager_history.log")
+
 
 CURRENT_YTDLP_VERSION = "Unknown"
 

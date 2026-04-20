@@ -1,0 +1,22 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+.venv/
+venv/
+ENV/
+
+# Bot Specific
+config.json
+download/
+*.log
+*.zip
+*.part*
+
+# OS & IDE
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+desktop.ini
+
