@@ -35,7 +35,7 @@ BOT_TOKEN = CONFIG.get("BOT_TOKEN")
 DOWNLOAD_ROOT = CONFIG.get("DOWNLOAD_ROOT", "download")
 BOT_LOG_FILE = CONFIG.get("BOT_LOG_FILE", "bot_activity.log")
 MAX_FILE_SIZE = CONFIG.get("MAX_FILE_SIZE_MB", 49.5) * 1024 * 1024
-ALLOWED_USER_IDS = CONFIG.get("ALLOWED_USER_IDS", [])
+ALLOWED_USER_IDS = [int(uid) for uid in CONFIG.get("ALLOWED_USER_IDS", [])]
 HELP_TEXT = CONFIG.get("HELP_TEXT", "도움말이 설정되지 않았습니다.")
 
 
