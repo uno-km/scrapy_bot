@@ -164,14 +164,12 @@ async def download_worker(app):
             entries = list(info.get('entries', []))
             if not entries:
                 # 단건 게시물인 경우 entries가 없을 수 있음
-                if not is_profile:
-                    entries = [info]
-                else:
-                    raise Exception("게시물을 찾을 수 없습니다. (비공개 계정일 가능성)")
-
-            # 프로필인 경우 최대 100개, 단건인 경우 1개
-            max_items = 100 if is_profile else 1
-            entries = entries[:max_items]
+                entries = [info]
+            
+            # 프로필인 경우 최대 100개, 여러 장의 사진(Carousel)인 경우 전체, 단건 영상인 경우 1개
+            if is_profile:
+                entries = entries[:100]
+            # (is_profile이 아닐 때는 entries 전체를 처리하여 여러 장의 사진 게시물 대응)
             
             # 유효성 확인 성공 알림
             await status_msg.edit_text(f"✅ 확인되었습니다! 다운로드를 시작합니다. (총 {len(entries)}개 예상)")
@@ -185,7 +183,7 @@ async def download_worker(app):
                 outtmpl = f'{target_dir}/%(id)s_msg{message_id}.%(ext)s'
                 # 사진/슬라이드쇼의 경우 bv*+ba/b 형식이 없을 수 있으므로 유연하게 설정
                 ydl_opts_down = {
-                    'format': 'bv*+ba/b / best',
+                    'format': 'bestvideo+bestaudio/best', # 형식을 더 포괄적으로 변경
                     'outtmpl': outtmpl,
                     'quiet': True,
                     'no_warnings': True,
