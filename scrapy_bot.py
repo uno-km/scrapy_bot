@@ -97,6 +97,9 @@ class InstagramExtractor(BaseExtractor):
             return f"https://www.instagram.com/{clean_text[1:]}/"
         if not clean_text.startswith("http"):
             return f"https://www.instagram.com/{clean_text}/"
+        # URL에서 쿼리 파라미터(?igsh=...) 제거
+        if "instagram.com" in clean_text:
+            return clean_text.split('?')[0].rstrip('/')
         return clean_text
     @classmethod
     def is_match(cls, text: str) -> bool:
@@ -106,10 +109,11 @@ class InstagramExtractor(BaseExtractor):
     def is_profile(cls, url: str) -> bool:
         # 단건 링크 키워드
         single_markers = ["/p/", "/reel/", "/reels/", "/tv/", "/stories/"]
-        if any(m in url for m in single_markers): return False
-        path = urlparse(url).path.strip('/')
+        # 쿼리 파라미터 제외한 순수 경로 확인
+        pure_path = urlparse(url).path.strip('/')
+        if any(m in f"/{pure_path}/" for m in single_markers): return False
         # 경로가 존재하고 '/'가 더 이상 없으면 프로필로 간주 (아이디만 있는 경우)
-        return path and len(path.split('/')) == 1
+        return pure_path and len(pure_path.split('/')) == 1
 
 SUPPORTED_PLATFORMS = [TikTokExtractor, InstagramExtractor]
 
@@ -153,7 +157,17 @@ async def download_worker(app):
             with yt_dlp.YoutubeDL(ydl_opts_info) as ydl:
                 info = ydl.extract_info(url, download=False)
             
-            entries = list(info.get('entries', [info]))
+            if not info:
+                raise Exception("정보를 가져올 수 없습니다. (비공개 계정이거나 링크 오류)")
+
+            entries = list(info.get('entries', []))
+            if not entries:
+                # 단건 게시물인 경우 entries가 없을 수 있음
+                if not is_profile:
+                    entries = [info]
+                else:
+                    raise Exception("게시물을 찾을 수 없습니다. (비공개 계정일 가능성)")
+
             # 프로필인 경우 최대 100개, 단건인 경우 1개
             max_items = 100 if is_profile else 1
             entries = entries[:max_items]
