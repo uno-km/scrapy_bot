@@ -12,6 +12,7 @@ download/
 *.log
 *.zip
 *.part*
+cookies.txt
 
 # OS & IDE
 .vscode/

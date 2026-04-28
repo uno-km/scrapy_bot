@@ -73,11 +73,14 @@ class TikTokExtractor(BaseExtractor):
     name = "TikTok"
     @classmethod
     def format_input(cls, text: str) -> str:
-        if text.startswith("@"): return f"https://www.tiktok.com/{text}"
-        return text
+        # tt: 접두사가 있으면 제거 후 처리
+        clean_text = text[3:] if text.lower().startswith("tt:") else text
+        if clean_text.startswith("@"): return f"https://www.tiktok.com/{clean_text}"
+        return clean_text
     @classmethod
     def is_match(cls, text: str) -> bool:
-        return "tiktok.com" in text or text.startswith("@")
+        t = text.lower()
+        return "tiktok.com" in t or t.startswith("tt:") or (t.startswith("@") and not t.startswith("ig:"))
     @classmethod
     def is_profile(cls, url: str) -> bool:
         # 단건 링크 키워드 제외
@@ -87,13 +90,25 @@ class TikTokExtractor(BaseExtractor):
 class InstagramExtractor(BaseExtractor):
     name = "Instagram"
     @classmethod
-    def is_match(cls, text: str) -> bool: return "instagram.com" in text
+    def format_input(cls, text: str) -> str:
+        # ig: 접두사가 있으면 제거 후 처리
+        clean_text = text[3:] if text.lower().startswith("ig:") else text
+        if clean_text.startswith("@"):
+            return f"https://www.instagram.com/{clean_text[1:]}/"
+        if not clean_text.startswith("http"):
+            return f"https://www.instagram.com/{clean_text}/"
+        return clean_text
+    @classmethod
+    def is_match(cls, text: str) -> bool:
+        t = text.lower()
+        return "instagram.com" in t or t.startswith("ig:")
     @classmethod
     def is_profile(cls, url: str) -> bool:
         # 단건 링크 키워드
         single_markers = ["/p/", "/reel/", "/reels/", "/tv/", "/stories/"]
         if any(m in url for m in single_markers): return False
         path = urlparse(url).path.strip('/')
+        # 경로가 존재하고 '/'가 더 이상 없으면 프로필로 간주 (아이디만 있는 경우)
         return path and len(path.split('/')) == 1
 
 SUPPORTED_PLATFORMS = [TikTokExtractor, InstagramExtractor]
@@ -120,14 +135,31 @@ async def download_worker(app):
         is_profile = extractor.is_profile(url)
 
         try:
+            # 🕒 시작 상태 알림
+            status_msg = await app.bot.send_message(chat_id, "🔍 유효성 확인 중...", reply_to_message_id=message_id)
+
+            # 🍪 쿠키 파일 확인 (인스타그램 차단 방지)
+            cookies_file = os.path.join(os.path.dirname(__file__), "cookies.txt")
+            cookie_opts = {"cookiefile": cookies_file} if os.path.exists(cookies_file) else {}
+
             # 1. 정보 추출
-            ydl_opts_info = {'quiet': True, 'no_warnings': True, 'extract_flat': True}
+            ydl_opts_info = {
+                'quiet': True, 
+                'no_warnings': True, 
+                'extract_flat': True,
+                'user_agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+                **cookie_opts
+            }
             with yt_dlp.YoutubeDL(ydl_opts_info) as ydl:
                 info = ydl.extract_info(url, download=False)
             
             entries = list(info.get('entries', [info]))
+            # 프로필인 경우 최대 100개, 단건인 경우 1개
             max_items = 100 if is_profile else 1
             entries = entries[:max_items]
+            
+            # 유효성 확인 성공 알림
+            await status_msg.edit_text(f"✅ 확인되었습니다! 다운로드를 시작합니다. (총 {len(entries)}개 예상)")
 
             # 2. 개별 처리
             for entry in entries:
@@ -136,12 +168,15 @@ async def download_worker(app):
                 
                 # 파일 패턴
                 outtmpl = f'{target_dir}/%(id)s_msg{message_id}.%(ext)s'
+                # 사진/슬라이드쇼의 경우 bv*+ba/b 형식이 없을 수 있으므로 유연하게 설정
                 ydl_opts_down = {
-                    'format': 'bv*+ba/b',
+                    'format': 'bv*+ba/b / best',
                     'outtmpl': outtmpl,
                     'quiet': True,
                     'no_warnings': True,
-                    'noplaylist': True
+                    'noplaylist': True,
+                    'user_agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+                    **cookie_opts
                 }
 
                 def get_file(bp): return next((f for f in glob.glob(f"{bp}.*") if not f.endswith('.part')), None)
@@ -191,7 +226,10 @@ async def download_worker(app):
 
         except Exception as e:
             error_msg = str(e)
-            await app.bot.send_message(chat_id, f"❌ 처리 에러: {error_msg[:100]}", reply_to_message_id=message_id)
+            if 'status_msg' in locals():
+                await status_msg.edit_text(f"❌ 오류: 유효하지 않은 계정이나 링크입니다.\n({error_msg[:50]}...)")
+            else:
+                await app.bot.send_message(chat_id, f"❌ 처리 에러: {error_msg[:100]}", reply_to_message_id=message_id)
         finally:
             # 상태 기록
             write_bot_log("DOWNLOAD_TASK", {
@@ -244,10 +282,8 @@ async def handle_message(u: Update, c: ContextTypes.DEFAULT_TYPE):
     processed_url = m.format_input(text)
     await queue.put((u.effective_chat.id, u.message.message_id, processed_url, m, target_dir, text, msg_time))
     
-    if m.is_profile(processed_url):
-        await u.message.reply_text(f"⏳ {m.name} 프로필 추출 대기열 추가...", reply_to_message_id=u.message.message_id)
-    else:
-        await u.message.reply_text(f"⏳ 대기열 추가됨 ({m.name})", reply_to_message_id=u.message.message_id)
+    # 즉각적인 응답 (타임아웃 방지)
+    await u.message.reply_text(f"🚀 서버에 전달완료! 곧 다운로드가 시작됩니다. ({m.name})", reply_to_message_id=u.message.message_id)
 
 async def post_init(app):
     for _ in range(3): workers.append(asyncio.create_task(download_worker(app)))
