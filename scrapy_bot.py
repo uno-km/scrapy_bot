@@ -151,6 +151,7 @@ async def download_worker(app):
                 'quiet': True, 
                 'no_warnings': True, 
                 'extract_flat': True,
+                'referer': 'https://www.instagram.com/',
                 'user_agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
                 **cookie_opts
             }
@@ -189,6 +190,7 @@ async def download_worker(app):
                     'quiet': True,
                     'no_warnings': True,
                     'noplaylist': True,
+                    'referer': 'https://www.instagram.com/',
                     'user_agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
                     **cookie_opts
                 }
