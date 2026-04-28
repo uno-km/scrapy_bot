@@ -150,7 +150,8 @@ async def download_worker(app):
             ydl_opts_info = {
                 'quiet': True, 
                 'no_warnings': True, 
-                'extract_flat': True,
+                'extract_flat': is_profile, # 프로필일 때만 속도를 위해 플랫 추출 사용
+                'noplaylist': False,        # 사진 게시물(Carousel)을 위해 플레이리스트 허용
                 'referer': 'https://www.instagram.com/',
                 'user_agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
                 **cookie_opts
@@ -183,11 +184,11 @@ async def download_worker(app):
                 outtmpl = f'{target_dir}/%(id)s_msg{message_id}.%(ext)s'
                 # 사진/슬라이드쇼의 경우 bv*+ba/b 형식이 없을 수 있으므로 유연하게 설정
                 ydl_opts_down = {
-                    'format': 'bestvideo+bestaudio/best', # 형식을 더 포괄적으로 변경
+                    'format': 'bestvideo+bestaudio/best', 
                     'outtmpl': outtmpl,
                     'quiet': True,
                     'no_warnings': True,
-                    'noplaylist': True,
+                    'noplaylist': True, # 개별 항목 다운로드 시에는 단건으로 처리
                     'referer': 'https://www.instagram.com/',
                     'user_agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
                     **cookie_opts
