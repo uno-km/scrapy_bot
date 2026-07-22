@@ -484,7 +484,7 @@ async function startAccountSearch() {
                     if (ubHtml) {
                         const itemsMap = new Map();
                         // This regex searches for the video link and the immediate img tag after it
-                        const regex = /href="https:\/\/urlebird\.com\/video\/[^"]+-(\d+)\/"[^>]*>[\s\S]*?<img[^>]+src="([^"]+)"/g;
+                        const regex = /<a href="https:\/\/urlebird\.com\/video\/[^"]+-(\d+)\/"[^>]*>[\s\S]*?<img[^>]+src="([^"]+)"/g;
                         let match;
                         while ((match = regex.exec(ubHtml)) !== null) {
                             if (!itemsMap.has(match[1])) {
