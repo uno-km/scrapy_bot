@@ -136,13 +136,15 @@ ydl_opts = {
 }
 
 url = "${urlInput}"
+result_str = ""
 try:
     with yt_dlp.YoutubeDL(ydl_opts) as ydl:
         info_dict = ydl.extract_info(url, download=False)
-        # return json string to JS
-        json.dumps(info_dict)
+        result_str = json.dumps(info_dict)
 except Exception as e:
-    json.dumps({"error": str(e)})
+    result_str = json.dumps({"error": str(e)})
+
+result_str
         `;
         
         logToTerminal('Executing yt-dlp in Python environment...', 'info');
