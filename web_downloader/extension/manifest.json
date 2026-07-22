@@ -1,14 +1,29 @@
 {
   "manifest_version": 3,
-  "name": "AMEVA Universal CORS Unblocker",
-  "version": "1.0.0",
-  "description": "Cross-browser CORS Unblocker for AMEVA Web Downloader (Chrome, Edge, Whale, Opera, Firefox)",
+  "name": "AMEVA Universal CORS & Auth Proxy",
+  "version": "2.0.0",
+  "description": "Bypasses CORS restrictions for AMEVA Downloader and proxies authenticated requests to Instagram using active cookies.",
   "permissions": [
     "declarativeNetRequest",
-    "declarativeNetRequestWithHostAccess"
+    "declarativeNetRequestFeedback",
+    "storage"
   ],
   "host_permissions": [
     "<all_urls>"
+  ],
+  "background": {
+    "service_worker": "background.js"
+  },
+  "content_scripts": [
+    {
+      "matches": [
+        "*://uno-km.github.io/*",
+        "*://localhost/*",
+        "*://127.0.0.1/*"
+      ],
+      "js": ["content.js"],
+      "run_at": "document_start"
+    }
   ],
   "declarative_net_request": {
     "rule_resources": [
@@ -18,11 +33,5 @@
         "path": "rules.json"
       }
     ]
-  },
-  "browser_specific_settings": {
-    "gecko": {
-      "id": "cors-unblocker@ameva.downloader",
-      "strict_min_version": "109.0"
-    }
   }
 }
