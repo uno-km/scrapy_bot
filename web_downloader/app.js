@@ -461,10 +461,10 @@ async function startAccountSearch() {
                             logToTerminal(`JSON 파싱 에러: ${parseErr.message}`, 'error', 'account');
                         }
                     } else {
-                        logToTerminal('정규식 추출 실패 (스크립트 태그를 찾지 못함)', 'error', 'account');
+                        // logToTerminal('정규식 추출 실패 (스크립트 태그를 찾지 못함)', 'error', 'account');
                     }
                 } else {
-                    logToTerminal('TikTok HTML을 불러오지 못했습니다.', 'error', 'account');
+                    // logToTerminal('TikTok HTML을 불러오지 못했습니다.', 'error', 'account');
                 }
             }
 
@@ -482,26 +482,39 @@ async function startAccountSearch() {
                     }
                     
                     if (ubHtml) {
-                        const itemsMap = new Map();
-                        // This regex searches for the video link and the immediate img tag after it
-                        const regex = /<a href="https:\/\/urlebird\.com\/video\/[^"]+-(\d+)\/"[^>]*>[\s\S]*?<img[^>]+src="([^"]+)"/g;
+                        const jsonRegex = /<script type="application\/ld\+json">([\s\S]*?)<\/script>/g;
                         let match;
-                        while ((match = regex.exec(ubHtml)) !== null) {
-                            if (!itemsMap.has(match[1])) {
-                                itemsMap.set(match[1], match[2]);
+                        while ((match = jsonRegex.exec(ubHtml)) !== null) {
+                            try {
+                                const data = JSON.parse(match[1]);
+                                if (data['@type'] === 'ItemList' && Array.isArray(data.itemListElement)) {
+                                    const itemsMap = new Map();
+                                    for (const item of data.itemListElement) {
+                                        if (!item.url) continue;
+                                        const idMatch = item.url.match(/(\d+)\/?$/);
+                                        if (idMatch && item.thumbnailUrl && item.thumbnailUrl.length > 0) {
+                                            itemsMap.set(idMatch[1], item.thumbnailUrl[0]);
+                                        }
+                                    }
+                                    
+                                    if (itemsMap.size > 0) {
+                                        mediaItems = Array.from(itemsMap.entries()).map(([id, thumb]) => ({
+                                            id: id,
+                                            type: 'video',
+                                            thumb: thumb, // Use the proxy thumbnail from JSON-LD
+                                            url: `https://www.tiktok.com/@${accountInput}/video/${id}`,
+                                            title: `TikTok_${id}`
+                                        }));
+                                        logToTerminal(`퍼블릭 아카이브(UrleBird)에서 ${itemsMap.size}개의 영상을 찾았습니다!`, 'success', 'account');
+                                        break; // Successfully parsed the video list
+                                    }
+                                }
+                            } catch (e) {
+                                // Ignore parse errors of other JSON-LD tags
                             }
                         }
                         
-                        if (itemsMap.size > 0) {
-                            mediaItems = Array.from(itemsMap.entries()).map(([id, thumb]) => ({
-                                id: id,
-                                type: 'video',
-                                thumb: thumb, // Use the proxy thumbnail from UrleBird
-                                url: `https://www.tiktok.com/@${accountInput}/video/${id}`,
-                                title: `TikTok_${id}`
-                            }));
-                            logToTerminal(`퍼블릭 아카이브(UrleBird)에서 ${itemsMap.size}개의 영상을 찾았습니다!`, 'success', 'account');
-                        } else {
+                        if (mediaItems.length === 0) {
                             logToTerminal('퍼블릭 아카이브(UrleBird)에서 영상을 찾지 못했습니다.', 'warn', 'account');
                         }
                     }
