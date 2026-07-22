@@ -436,20 +436,75 @@ async function startAccountSearch() {
                 }
 
                 if (htmlText) {
+                    console.log("[TikTok HTML Length]", htmlText.length);
+                    const hasUniversal = htmlText.includes('__UNIVERSAL_DATA_FOR_REHYDRATION__');
+                    const hasSigi = htmlText.includes('SIGI_STATE');
+                    logToTerminal(`TikTok HTML 분석... (UNIVERSAL:${hasUniversal}, SIGI:${hasSigi})`, 'info', 'account');
+
                     const jsonMatch = htmlText.match(/<script id="__UNIVERSAL_DATA_FOR_REHYDRATION__"[^>]*>([\s\S]*?)<\/script>/) || htmlText.match(/<script id="SIGI_STATE"[^>]*>([\s\S]*?)<\/script>/);
+                    
                     if (jsonMatch) {
-                        const jsonData = JSON.parse(jsonMatch[1]);
-                        const itemList = jsonData?.default?.["user-post"]?.list || jsonData?.ItemModule || jsonData?.__DEFAULT_SCOPE__?.["webapp.user-detail"]?.itemList || {};
-                        const videos = Array.isArray(itemList) ? itemList : Object.values(itemList);
-                        
-                        mediaItems = videos.map(v => ({
-                            id: v.id || v.video?.id,
-                            type: 'video',
-                            thumb: v.video?.cover || v.video?.originCover || 'https://picsum.photos/300/450',
-                            url: v.video?.playAddr || v.video?.downloadAddr,
-                            title: v.desc || `TikTok_${v.id}`
-                        })).filter(item => item.url);
+                        try {
+                            const jsonData = JSON.parse(jsonMatch[1]);
+                            const itemList = jsonData?.default?.["user-post"]?.list || jsonData?.ItemModule || jsonData?.__DEFAULT_SCOPE__?.["webapp.user-detail"]?.itemList || {};
+                            const videos = Array.isArray(itemList) ? itemList : Object.values(itemList);
+                            logToTerminal(`JSON 파싱 성공. 비디오 배열 크기: ${videos.length}`, 'info', 'account');
+                            
+                            mediaItems = videos.map(v => ({
+                                id: v.id || v.video?.id,
+                                type: 'video',
+                                thumb: v.video?.cover || v.video?.originCover || 'https://picsum.photos/300/450',
+                                url: v.video?.playAddr || v.video?.downloadAddr,
+                                title: v.desc || `TikTok_${v.id}`
+                            })).filter(item => item.url);
+                        } catch (parseErr) {
+                            logToTerminal(`JSON 파싱 에러: ${parseErr.message}`, 'error', 'account');
+                        }
+                    } else {
+                        logToTerminal('정규식 추출 실패 (스크립트 태그를 찾지 못함)', 'error', 'account');
                     }
+                } else {
+                    logToTerminal('TikTok HTML을 불러오지 못했습니다.', 'error', 'account');
+                }
+            }
+
+            // --- UrleBird Fallback ---
+            if (mediaItems.length === 0) {
+                logToTerminal('TikTok 웹 스크래핑 차단됨. 퍼블릭 아카이브(UrleBird) 우회 탐색 시작...', 'info', 'account');
+                try {
+                    const urlebirdUrl = `https://urlebird.com/user/${encodeURIComponent(accountInput)}/`;
+                    let ubHtml = '';
+                    if (extBridgeReady) {
+                        ubHtml = await fetchViaExtensionBridge(urlebirdUrl);
+                    } else {
+                        const ubRes = await fetch(urlebirdUrl);
+                        if (ubRes.ok) ubHtml = await ubRes.text();
+                    }
+                    
+                    if (ubHtml) {
+                        const videoIds = [];
+                        const regex = /href="https:\/\/urlebird\.com\/video\/[^"]+-(\d+)\/"/g;
+                        let match;
+                        while ((match = regex.exec(ubHtml)) !== null) {
+                            videoIds.push(match[1]);
+                        }
+                        
+                        const uniqueIds = [...new Set(videoIds)];
+                        if (uniqueIds.length > 0) {
+                            mediaItems = uniqueIds.map(id => ({
+                                id: id,
+                                type: 'video',
+                                thumb: `https://www.tikwm.com/video/cover/${id}.webp`,
+                                url: `https://www.tiktok.com/@${accountInput}/video/${id}`,
+                                title: `TikTok_${id}`
+                            }));
+                            logToTerminal(`퍼블릭 아카이브(UrleBird)에서 ${uniqueIds.length}개의 영상을 찾았습니다!`, 'success', 'account');
+                        } else {
+                            logToTerminal('퍼블릭 아카이브(UrleBird)에서 영상을 찾지 못했습니다.', 'warn', 'account');
+                        }
+                    }
+                } catch (ubErr) {
+                    logToTerminal(`UrleBird 우회 탐색 실패: ${ubErr.message}`, 'error', 'account');
                 }
             }
 
@@ -597,7 +652,21 @@ async function downloadSelectedMedia() {
 
         try {
             logToTerminal(`다운로드 중: ${item.title}...`, 'info', 'account');
-            await downloadSingleBlob(item.url, `${item.title}_${Date.now()}.${item.type === 'video' ? 'mp4' : 'jpg'}`, 'account');
+            let downloadUrl = item.url;
+            
+            // TikTok의 원본 페이지 URL인 경우 (UrleBird 폴백 등에서 획득) TikWM으로 실제 MP4 URL 변환
+            if (downloadUrl.includes('tiktok.com') && !downloadUrl.includes('.mp4') && !downloadUrl.includes('tikwm')) {
+                logToTerminal(`원본 URL 변환 중...`, 'info', 'account');
+                const tikwmRes = await fetch(`https://www.tikwm.com/api/?url=${encodeURIComponent(downloadUrl)}`);
+                const tikwmJson = await tikwmRes.json();
+                if (tikwmJson.data && tikwmJson.data.play) {
+                    downloadUrl = "https://www.tikwm.com" + tikwmJson.data.play;
+                } else {
+                    throw new Error('원본 비디오 링크를 추출하지 못했습니다.');
+                }
+            }
+            
+            await downloadSingleBlob(downloadUrl, `${item.title}_${Date.now()}.${item.type === 'video' ? 'mp4' : 'jpg'}`, 'account');
             logToTerminal(`✅ 저장 완료: ${item.title}`, 'success', 'account');
         } catch (e) {
             logToTerminal(`❌ 저장 실패 (${item.title}): ${e.message}`, 'error', 'account');
