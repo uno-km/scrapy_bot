@@ -146,10 +146,18 @@
             
             <!-- Modal Header -->
             <div class="px-6 py-4 border-b border-slate-800 flex justify-between items-center bg-slate-950/50">
-                <h3 class="text-base font-semibold text-white flex items-center gap-2">
-                    <span>🔌</span> 브라우저별 CORS 우회 확장 프로그램 설치 가이드
-                </h3>
-                <button onclick="closeExtensionModal()" class="text-slate-400 hover:text-white text-lg font-bold">✕</button>
+                <div>
+                    <h3 class="text-base font-semibold text-white flex items-center gap-2">
+                        <span>🔌</span> 브라우저별 CORS 우회 확장 프로그램 가이드
+                    </h3>
+                    <p class="text-xs text-slate-400 mt-0.5">아래 버튼을 눌러 확장 프로그램 압축파일을 다운받아 로드하세요.</p>
+                </div>
+                <div class="flex items-center gap-3">
+                    <a href="extension.zip" download="AMEVA_CORS_Unblocker.zip" class="px-3 py-1.5 bg-slate-100 hover:bg-white text-slate-950 rounded-lg text-xs font-semibold transition-colors flex items-center gap-1.5 shadow-sm">
+                        <span>📦 확장 프로그램 (.zip) 다운로드</span>
+                    </a>
+                    <button onclick="closeExtensionModal()" class="text-slate-400 hover:text-white text-lg font-bold">✕</button>
+                </div>
             </div>
 
             <!-- Modal Browser Tabs -->
@@ -167,10 +175,10 @@
                 <div id="ext-content-chrome" class="space-y-3 block">
                     <p class="font-semibold text-slate-100">Google Chrome (구글 크롬) 설치 방법:</p>
                     <ol class="list-decimal list-inside space-y-2 bg-slate-950 p-4 rounded-xl border border-slate-800">
+                        <li>상단의 <strong class="text-white">'📦 확장 프로그램 (.zip) 다운로드'</strong> 버튼을 눌러 압축파일을 받고 해제합니다.</li>
                         <li>크롬 주소창에 <code class="bg-slate-800 text-slate-200 px-1.5 py-0.5 rounded">chrome://extensions</code> 입력 후 엔터.</li>
                         <li>우측 상단의 <strong class="text-white">'개발자 모드'</strong> 스위치를 켭니다.</li>
-                        <li>좌측 상단 <strong class="text-white">'압축해제된 확장 프로그램을 로드합니다'</strong> 버튼 클릭.</li>
-                        <li>프로젝트의 <code class="bg-slate-800 text-slate-200 px-1.5 py-0.5 rounded">web_downloader/extension</code> 폴더를 선택하면 끝!</li>
+                        <li>좌측 상단 <strong class="text-white">'압축해제된 확장 프로그램을 로드합니다'</strong> 버튼을 누르고 압축 해제된 폴더 선택!</li>
                     </ol>
                 </div>
 
