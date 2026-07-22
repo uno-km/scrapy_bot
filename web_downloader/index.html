@@ -53,12 +53,12 @@
         <!-- Main Clean Box -->
         <div class="w-full bg-slate-900 border border-slate-800 rounded-2xl shadow-xl overflow-hidden">
             
-            <!-- Tabs -->
-            <div class="flex border-b border-slate-800 bg-slate-950/50">
-                <button id="tab-url" class="flex-1 py-3.5 text-center font-medium text-sm text-slate-100 border-b-2 border-slate-100 transition-all" onclick="switchTab('url')">
+            <!-- Tabs Header -->
+            <div class="flex border-b border-slate-800 bg-slate-950/60 p-1 gap-1">
+                <button id="tab-url" class="flex-1 py-3 text-center font-bold text-sm text-white bg-slate-900 border-b-2 border-white rounded-t-xl transition-all" onclick="switchTab('url')">
                     🔗 단일 URL 다운로드
                 </button>
-                <button id="tab-account" class="flex-1 py-3.5 text-center font-medium text-sm text-slate-500 border-b-2 border-transparent transition-all hover:text-slate-300" onclick="switchTab('account')">
+                <button id="tab-account" class="flex-1 py-3 text-center font-medium text-sm text-slate-400 bg-transparent border-b-2 border-transparent rounded-t-xl hover:text-slate-200 transition-all" onclick="switchTab('account')">
                     👤 계정 피드 검색
                 </button>
             </div>
@@ -84,6 +84,19 @@
                     <button id="btn-download-url" disabled class="w-full py-3 rounded-xl font-semibold text-sm bg-slate-100 text-slate-950 hover:bg-white transition-all disabled:opacity-40 disabled:cursor-not-allowed" onclick="startUrlDownload()">
                         추출 및 다운로드
                     </button>
+
+                    <!-- URL Tab Dedicated Console -->
+                    <div class="pt-2">
+                        <div class="flex justify-between items-center mb-1.5">
+                            <span class="text-[11px] font-mono text-slate-400 uppercase tracking-wider">URL 추출 콘솔 로그</span>
+                            <button onclick="document.getElementById('log-output-url').innerHTML=''" class="text-[11px] text-slate-500 hover:text-slate-300 transition-colors">Clear</button>
+                        </div>
+                        <div class="bg-slate-950 border border-slate-800/80 rounded-xl p-3.5 font-mono text-xs h-36 overflow-y-auto custom-scrollbar" id="log-container-url">
+                            <ul id="log-output-url" class="space-y-1">
+                                <li class="text-slate-500">[URL Mode] 준비 완료</li>
+                            </ul>
+                        </div>
+                    </div>
                 </div>
 
                 <!-- View 2: Account Search -->
@@ -108,18 +121,18 @@
                     <button id="btn-search-account" disabled class="w-full py-3 rounded-xl font-semibold text-sm bg-slate-100 text-slate-950 hover:bg-white transition-all disabled:opacity-40 disabled:cursor-not-allowed" onclick="startAccountSearch()">
                         계정 전체 미디어 스캔
                     </button>
-                </div>
 
-                <!-- Global Log Output -->
-                <div class="pt-2">
-                    <div class="flex justify-between items-center mb-1.5">
-                        <span class="text-[11px] font-mono text-slate-500 uppercase tracking-wider">Terminal Console</span>
-                        <button onclick="document.getElementById('log-output').innerHTML=''" class="text-[11px] text-slate-500 hover:text-slate-300 transition-colors">Clear</button>
-                    </div>
-                    <div class="bg-slate-950 border border-slate-800/80 rounded-xl p-3.5 font-mono text-xs h-40 overflow-y-auto custom-scrollbar" id="log-container">
-                        <ul id="log-output" class="space-y-1">
-                            <li class="text-slate-500">[System] AMEVA Downloader Initialized</li>
-                        </ul>
+                    <!-- Account Tab Dedicated Console -->
+                    <div class="pt-2">
+                        <div class="flex justify-between items-center mb-1.5">
+                            <span class="text-[11px] font-mono text-slate-400 uppercase tracking-wider">계정 스캔 콘솔 로그</span>
+                            <button onclick="document.getElementById('log-output-account').innerHTML=''" class="text-[11px] text-slate-500 hover:text-slate-300 transition-colors">Clear</button>
+                        </div>
+                        <div class="bg-slate-950 border border-slate-800/80 rounded-xl p-3.5 font-mono text-xs h-36 overflow-y-auto custom-scrollbar" id="log-container-account">
+                            <ul id="log-output-account" class="space-y-1">
+                                <li class="text-slate-500">[Account Mode] 준비 완료</li>
+                            </ul>
+                        </div>
                     </div>
                 </div>
 
