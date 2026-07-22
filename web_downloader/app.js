@@ -76,6 +76,7 @@ async function initWASM() {
         logToTerminal('Pyodide loaded. Installing micropip...', 'success');
         
         await pyodideInstance.loadPackage("micropip");
+        await pyodideInstance.loadPackage("ssl");
         const micropip = pyodideInstance.pyimport("micropip");
         
         logToTerminal('Installing yt-dlp inside WASM (This might take a minute)...', 'warn');
