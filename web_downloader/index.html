@@ -171,78 +171,84 @@
         <div class="glass-panel rounded-2xl w-full max-w-2xl overflow-hidden shadow-2xl flex flex-col max-h-[85vh]">
             
             <!-- Modal Header -->
+            <div class="p-5 border-b border-white/5 flex justify-between items-center bg-black/20">
+                <h3 class="text-lg font-bold text-white flex items-center gap-2">
+                    <span class="text-2xl">🔌</span> 확장 프로그램 가이드
+                </h3>
                 <div class="flex items-center gap-3">
-                    <a href="extension.zip" download="AMEVA_CORS_Unblocker.zip" class="px-3 py-1.5 bg-slate-100 hover:bg-white text-slate-950 rounded-lg text-xs font-semibold transition-colors flex items-center gap-1.5 shadow-sm">
-                        <span>📦 확장 프로그램 (.zip) 다운로드</span>
+                    <a href="https://github.com/uno-km/scrapy_bot/releases/latest" target="_blank" class="px-3 py-1.5 bg-emerald-500 hover:bg-emerald-400 text-slate-950 rounded-lg text-xs font-bold transition-all shadow-[0_0_15px_rgba(16,185,129,0.3)]">
+                        📦 확장 프로그램 다운로드
                     </a>
-                    <button onclick="closeExtensionModal()" class="text-slate-400 hover:text-white text-lg font-bold">✕</button>
+                    <button onclick="closeExtensionModal()" class="text-slate-400 hover:text-emerald-300 transition-colors">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                    </button>
                 </div>
             </div>
 
             <!-- Modal Browser Tabs -->
-            <div class="flex border-b border-slate-800 bg-slate-950/30 overflow-x-auto">
-                <button id="ext-tab-chrome" class="px-4 py-3 text-xs font-medium text-slate-100 border-b-2 border-slate-100 transition-all whitespace-nowrap" onclick="switchExtTab('chrome')">Google Chrome</button>
-                <button id="ext-tab-edge" class="px-4 py-3 text-xs font-medium text-slate-500 border-b-2 border-transparent hover:text-slate-300 transition-all whitespace-nowrap" onclick="switchExtTab('edge')">MS Edge</button>
-                <button id="ext-tab-whale" class="px-4 py-3 text-xs font-medium text-slate-500 border-b-2 border-transparent hover:text-slate-300 transition-all whitespace-nowrap" onclick="switchExtTab('whale')">Naver Whale</button>
-                <button id="ext-tab-opera" class="px-4 py-3 text-xs font-medium text-slate-500 border-b-2 border-transparent hover:text-slate-300 transition-all whitespace-nowrap" onclick="switchExtTab('opera')">Opera</button>
-                <button id="ext-tab-firefox" class="px-4 py-3 text-xs font-medium text-slate-500 border-b-2 border-transparent hover:text-slate-300 transition-all whitespace-nowrap" onclick="switchExtTab('firefox')">Firefox</button>
+            <div class="flex border-b border-white/5 bg-black/20 overflow-x-auto custom-scrollbar">
+                <button id="ext-tab-chrome" class="px-4 py-3 text-xs font-bold text-emerald-300 border-b-2 border-emerald-400 transition-all whitespace-nowrap" onclick="switchExtTab('chrome')">Google Chrome</button>
+                <button id="ext-tab-edge" class="px-4 py-3 text-xs font-medium text-slate-400 border-b-2 border-transparent hover:text-emerald-100 transition-all whitespace-nowrap" onclick="switchExtTab('edge')">MS Edge</button>
+                <button id="ext-tab-whale" class="px-4 py-3 text-xs font-medium text-slate-400 border-b-2 border-transparent hover:text-emerald-100 transition-all whitespace-nowrap" onclick="switchExtTab('whale')">Naver Whale</button>
+                <button id="ext-tab-opera" class="px-4 py-3 text-xs font-medium text-slate-400 border-b-2 border-transparent hover:text-emerald-100 transition-all whitespace-nowrap" onclick="switchExtTab('opera')">Opera</button>
+                <button id="ext-tab-firefox" class="px-4 py-3 text-xs font-medium text-slate-400 border-b-2 border-transparent hover:text-emerald-100 transition-all whitespace-nowrap" onclick="switchExtTab('firefox')">Firefox</button>
             </div>
 
             <!-- Modal Content -->
-            <div class="p-6 overflow-y-auto space-y-4 text-xs text-slate-300 leading-relaxed custom-scrollbar flex-1">
+            <div class="p-6 overflow-y-auto space-y-4 text-xs text-emerald-100/80 leading-relaxed custom-scrollbar flex-1">
                 
-                <div id="ext-content-chrome" class="space-y-3 block">
-                    <p class="font-semibold text-slate-100">Google Chrome (구글 크롬) 설치 방법:</p>
-                    <ol class="list-decimal list-inside space-y-2 bg-slate-950 p-4 rounded-xl border border-slate-800">
-                        <li>상단의 <strong class="text-white">'📦 확장 프로그램 (.zip) 다운로드'</strong> 버튼을 눌러 압축파일을 받고 해제합니다.</li>
-                        <li>크롬 주소창에 <code class="bg-slate-800 text-slate-200 px-1.5 py-0.5 rounded">chrome://extensions</code> 입력 후 엔터.</li>
-                        <li>우측 상단의 <strong class="text-white">'개발자 모드'</strong> 스위치를 켭니다.</li>
-                        <li>좌측 상단 <strong class="text-white">'압축해제된 확장 프로그램을 로드합니다'</strong> 버튼을 누르고 압축 해제된 폴더 선택!</li>
+                <div id="ext-content-chrome" class="space-y-3 block animate-in fade-in duration-300">
+                    <p class="font-bold text-emerald-300">Google Chrome (구글 크롬) 설치 방법:</p>
+                    <ol class="list-decimal list-inside space-y-3 bg-black/40 p-5 rounded-xl border border-white/5 shadow-inner">
+                        <li>상단의 <strong class="text-white bg-emerald-500/20 px-1 rounded">📦 확장 프로그램 다운로드</strong> 버튼을 눌러 압축파일을 받고 해제합니다.</li>
+                        <li>크롬 주소창에 <code class="bg-black/60 text-emerald-300 px-2 py-0.5 rounded border border-white/10 font-mono">chrome://extensions</code> 입력 후 엔터.</li>
+                        <li>우측 상단의 <strong class="text-white border-b border-emerald-400">'개발자 모드'</strong> 스위치를 켭니다.</li>
+                        <li>좌측 상단 <strong class="text-white border-b border-emerald-400">'압축해제된 확장 프로그램을 로드합니다'</strong> 버튼을 누르고 압축 해제된 폴더 선택!</li>
                     </ol>
                 </div>
 
-                <div id="ext-content-edge" class="space-y-3 hidden">
-                    <p class="font-semibold text-slate-100">Microsoft Edge (마이크로소프트 엣지) 설치 방법:</p>
-                    <ol class="list-decimal list-inside space-y-2 bg-slate-950 p-4 rounded-xl border border-slate-800">
-                        <li>엣지 주소창에 <code class="bg-slate-800 text-slate-200 px-1.5 py-0.5 rounded">edge://extensions</code> 입력 후 엔터.</li>
-                        <li>좌측 메뉴 하단의 <strong class="text-white">'개발자 모드'</strong> 스위치를 켭니다.</li>
-                        <li><strong class="text-white">'압축 해제된 로드'</strong> 버튼 클릭 후 <code class="bg-slate-800 text-slate-200 px-1.5 py-0.5 rounded">web_downloader/extension</code> 폴더 선택.</li>
+                <div id="ext-content-edge" class="space-y-3 hidden animate-in fade-in duration-300">
+                    <p class="font-bold text-emerald-300">Microsoft Edge (마이크로소프트 엣지) 설치 방법:</p>
+                    <ol class="list-decimal list-inside space-y-3 bg-black/40 p-5 rounded-xl border border-white/5 shadow-inner">
+                        <li>엣지 주소창에 <code class="bg-black/60 text-emerald-300 px-2 py-0.5 rounded border border-white/10 font-mono">edge://extensions</code> 입력 후 엔터.</li>
+                        <li>좌측 메뉴 하단의 <strong class="text-white border-b border-emerald-400">'개발자 모드'</strong> 스위치를 켭니다.</li>
+                        <li><strong class="text-white border-b border-emerald-400">'압축 해제된 로드'</strong> 버튼 클릭 후 다운받은 폴더 선택.</li>
                     </ol>
                 </div>
 
-                <div id="ext-content-whale" class="space-y-3 hidden">
-                    <p class="font-semibold text-slate-100">Naver Whale (네이버 웨일) 설치 방법:</p>
-                    <ol class="list-decimal list-inside space-y-2 bg-slate-950 p-4 rounded-xl border border-slate-800">
-                        <li>웨일 주소창에 <code class="bg-slate-800 text-slate-200 px-1.5 py-0.5 rounded">whale://extensions</code> 입력 후 엔터.</li>
-                        <li>우측 상단의 <strong class="text-white">'개발자 모드'</strong> 스위치를 켭니다.</li>
-                        <li><strong class="text-white">'압축 해제된 확장 앱 로드'</strong> 버튼 클릭 후 <code class="bg-slate-800 text-slate-200 px-1.5 py-0.5 rounded">web_downloader/extension</code> 폴더 선택.</li>
+                <div id="ext-content-whale" class="space-y-3 hidden animate-in fade-in duration-300">
+                    <p class="font-bold text-emerald-300">Naver Whale (네이버 웨일) 설치 방법:</p>
+                    <ol class="list-decimal list-inside space-y-3 bg-black/40 p-5 rounded-xl border border-white/5 shadow-inner">
+                        <li>웨일 주소창에 <code class="bg-black/60 text-emerald-300 px-2 py-0.5 rounded border border-white/10 font-mono">whale://extensions</code> 입력 후 엔터.</li>
+                        <li>우측 상단의 <strong class="text-white border-b border-emerald-400">'개발자 모드'</strong> 스위치를 켭니다.</li>
+                        <li><strong class="text-white border-b border-emerald-400">'압축 해제된 확장 앱 로드'</strong> 버튼 클릭 후 다운받은 폴더 선택.</li>
                     </ol>
                 </div>
 
-                <div id="ext-content-opera" class="space-y-3 hidden">
-                    <p class="font-semibold text-slate-100">Opera (오페라) 설치 방법:</p>
-                    <ol class="list-decimal list-inside space-y-2 bg-slate-950 p-4 rounded-xl border border-slate-800">
-                        <li>오페라 주소창에 <code class="bg-slate-800 text-slate-200 px-1.5 py-0.5 rounded">opera://extensions</code> 입력 후 엔터.</li>
-                        <li>우측 상단의 <strong class="text-white">'Developer mode'</strong> 스위치를 켭니다.</li>
-                        <li><strong class="text-white">'Load unpacked'</strong> 버튼 클릭 후 <code class="bg-slate-800 text-slate-200 px-1.5 py-0.5 rounded">web_downloader/extension</code> 폴더 선택.</li>
+                <div id="ext-content-opera" class="space-y-3 hidden animate-in fade-in duration-300">
+                    <p class="font-bold text-emerald-300">Opera (오페라) 설치 방법:</p>
+                    <ol class="list-decimal list-inside space-y-3 bg-black/40 p-5 rounded-xl border border-white/5 shadow-inner">
+                        <li>오페라 주소창에 <code class="bg-black/60 text-emerald-300 px-2 py-0.5 rounded border border-white/10 font-mono">opera://extensions</code> 입력 후 엔터.</li>
+                        <li>우측 상단의 <strong class="text-white border-b border-emerald-400">'Developer mode'</strong> 스위치를 켭니다.</li>
+                        <li><strong class="text-white border-b border-emerald-400">'Load unpacked'</strong> 버튼 클릭 후 다운받은 폴더 선택.</li>
                     </ol>
                 </div>
 
-                <div id="ext-content-firefox" class="space-y-3 hidden">
-                    <p class="font-semibold text-slate-100">Mozilla Firefox (파이어폭스) 설치 방법:</p>
-                    <ol class="list-decimal list-inside space-y-2 bg-slate-950 p-4 rounded-xl border border-slate-800">
-                        <li>파이어폭스 주소창에 <code class="bg-slate-800 text-slate-200 px-1.5 py-0.5 rounded">about:debugging#/runtime/this-firefox</code> 입력 후 엔터.</li>
-                        <li><strong class="text-white">'임시 부가 기능 로드 (Load Temporary Add-on...)'</strong> 버튼 클릭.</li>
-                        <li><code class="bg-slate-800 text-slate-200 px-1.5 py-0.5 rounded">web_downloader/extension/manifest.json</code> 파일 선택.</li>
+                <div id="ext-content-firefox" class="space-y-3 hidden animate-in fade-in duration-300">
+                    <p class="font-bold text-emerald-300">Mozilla Firefox (파이어폭스) 설치 방법:</p>
+                    <ol class="list-decimal list-inside space-y-3 bg-black/40 p-5 rounded-xl border border-white/5 shadow-inner">
+                        <li>파이어폭스 주소창에 <code class="bg-black/60 text-emerald-300 px-2 py-0.5 rounded border border-white/10 font-mono">about:debugging#/runtime/this-firefox</code> 입력 후 엔터.</li>
+                        <li><strong class="text-white border-b border-emerald-400">'임시 부가 기능 로드 (Load Temporary Add-on...)'</strong> 버튼 클릭.</li>
+                        <li>압축 푼 폴더 내부의 <code class="bg-black/60 text-emerald-300 px-2 py-0.5 rounded border border-white/10 font-mono">manifest.json</code> 파일 선택.</li>
                     </ol>
                 </div>
 
             </div>
 
             <!-- Modal Footer -->
-            <div class="px-6 py-3 border-t border-slate-800 bg-slate-950/50 flex justify-end">
-                <button onclick="closeExtensionModal()" class="px-4 py-1.5 bg-slate-800 hover:bg-slate-700 text-white rounded-lg text-xs font-medium transition-colors">
-                    닫기
+            <div class="px-6 py-4 border-t border-white/5 bg-black/20 flex justify-end">
+                <button onclick="closeExtensionModal()" class="px-5 py-2 glass-button rounded-xl text-xs font-bold transition-all">
+                    확인 및 닫기
                 </button>
             </div>
         </div>
