@@ -358,6 +358,7 @@ res
             a.click();
             document.body.removeChild(a);
             URL.revokeObjectURL(blobUrl);
+            saveToHistory(`${title}_bundle.zip`, 'ZIP Archive');
             logToTerminal('✅ ZIP 일괄 다운로드가 완료되었습니다!', 'success', 'url');
         }
 
@@ -380,6 +381,7 @@ async function downloadSingleBlob(url, filename, mode = 'url') {
     a.click();
     document.body.removeChild(a);
     URL.revokeObjectURL(blobUrl);
+    saveToHistory(filename, url);
 }
 
 // -------------------------------------------------------------
@@ -647,6 +649,28 @@ function toggleMediaSelection(id, cardElement, event) {
     updateDownloadButtonText();
 }
 
+function selectAllMedia() {
+    const isAllSelected = selectedMediaItems.size > 0 && selectedMediaItems.size === currentScrapedItemsMap.size;
+    
+    document.querySelectorAll('.gallery-item').forEach(card => {
+        const checkbox = card.querySelector('input[type="checkbox"]');
+        const id = checkbox.id.replace('checkbox-', '');
+        
+        if (isAllSelected) {
+            // Deselect all
+            selectedMediaItems.delete(id);
+            card.classList.remove('selected');
+            checkbox.checked = false;
+        } else {
+            // Select all
+            selectedMediaItems.add(id);
+            card.classList.add('selected');
+            checkbox.checked = true;
+        }
+    });
+    updateDownloadButtonText();
+}
+
 function updateDownloadButtonText() {
     btnDownloadSelected.textContent = `선택 다운로드 (${selectedMediaItems.size})`;
     if (selectedMediaItems.size > 0) {
@@ -697,3 +721,104 @@ async function downloadSelectedMedia() {
 window.addEventListener('DOMContentLoaded', () => {
     initWASM();
 });
+
+// -------------------------------------------------------------
+// History Database Logic
+// -------------------------------------------------------------
+function generateUUID() {
+    if (crypto && crypto.randomUUID) {
+        return crypto.randomUUID();
+    }
+    return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+        var r = Math.random() * 16 | 0, v = c == 'x' ? r : (r & 0x3 | 0x8);
+        return v.toString(16);
+    });
+}
+
+function saveToHistory(filename, url) {
+    try {
+        const history = JSON.parse(localStorage.getItem('ameva_download_history') || '[]');
+        const type = filename.endsWith('.mp4') ? 'VIDEO' : (filename.endsWith('.zip') ? 'ZIP' : 'PHOTO');
+        const now = new Date();
+        const timeStr = now.toLocaleTimeString('ko-KR', { hour12: false, hour: '2-digit', minute:'2-digit', second:'2-digit' });
+        
+        history.unshift({
+            uuid: generateUUID(),
+            timestamp: timeStr,
+            date: now.toLocaleDateString('ko-KR'),
+            filename: filename,
+            url: url,
+            type: type
+        });
+        
+        if (history.length > 2000) history.length = 2000;
+        
+        localStorage.setItem('ameva_download_history', JSON.stringify(history));
+    } catch (e) {
+        console.error("History save error:", e);
+    }
+}
+
+function renderHistory() {
+    const tbody = document.getElementById('history-table-body');
+    if (!tbody) return;
+    
+    try {
+        const history = JSON.parse(localStorage.getItem('ameva_download_history') || '[]');
+        tbody.innerHTML = '';
+        
+        if (history.length === 0) {
+            tbody.innerHTML = `<tr><td colspan="4" class="py-8 text-center text-slate-500">다운로드 기록이 없습니다.</td></tr>`;
+            return;
+        }
+        
+        history.forEach(item => {
+            const tr = document.createElement('tr');
+            tr.className = 'hover:bg-slate-900/50 transition-colors group';
+            
+            let typeColor = 'text-slate-400';
+            if (item.type === 'VIDEO') typeColor = 'text-blue-400';
+            else if (item.type === 'PHOTO') typeColor = 'text-pink-400';
+            else if (item.type === 'ZIP') typeColor = 'text-amber-400';
+            
+            tr.innerHTML = `
+                <td class="py-3 px-4 text-slate-300">
+                    <div class="text-xs text-slate-500">${item.date}</div>
+                    ${item.timestamp}
+                </td>
+                <td class="py-3 px-4">
+                    <span class="inline-block px-1.5 py-0.5 bg-slate-900 rounded text-[10px] font-bold border border-slate-800 ${typeColor}">
+                        ${item.type}
+                    </span>
+                </td>
+                <td class="py-3 px-4 text-slate-300 font-medium truncate max-w-[300px]" title="${item.filename}">
+                    ${item.filename}
+                </td>
+                <td class="py-3 px-4 text-slate-500 font-mono text-[10px]">
+                    ${item.uuid}
+                </td>
+            `;
+            tbody.appendChild(tr);
+        });
+    } catch(e) {
+        tbody.innerHTML = `<tr><td colspan="4" class="py-8 text-center text-red-400">기록을 불러오는데 실패했습니다.</td></tr>`;
+    }
+}
+
+function openHistoryModal() {
+    document.getElementById('history-modal').classList.remove('hidden');
+    document.getElementById('history-modal').classList.add('flex');
+    renderHistory();
+}
+
+function closeHistoryModal() {
+    document.getElementById('history-modal').classList.add('hidden');
+    document.getElementById('history-modal').classList.remove('flex');
+}
+
+function clearHistory() {
+    if (confirm('모든 다운로드 기록을 삭제하시겠습니까?')) {
+        localStorage.removeItem('ameva_download_history');
+        renderHistory();
+    }
+}
