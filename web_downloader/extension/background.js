@@ -108,7 +108,8 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
                                         edges = Array.from(edgesMap.values());
                                     }
                                     
-                                    return edges;
+                                    let pageText = document.body ? document.body.innerText.substring(0, 200).replace(/\n/g, ' ') : "No body";
+                                    return { edges: edges, pageText: pageText, url: window.location.href };
                                 }
                             }, (results) => {
                                 try { chrome.tabs.remove(tabId, () => { let _ = chrome.runtime.lastError; }); } catch(e) {} // safely close tab
@@ -118,10 +119,15 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
                                     return;
                                 }
 
-                                if (results && results[0] && results[0].result && results[0].result.length > 0) {
-                                    safeSendResponse({ success: true, edges: results[0].result });
+                                if (results && results[0] && results[0].result) {
+                                    let res = results[0].result;
+                                    if (res.edges && res.edges.length > 0) {
+                                        safeSendResponse({ success: true, edges: res.edges });
+                                    } else {
+                                        safeSendResponse({ success: false, error: "데이터 없음. 탭 화면 요약: [" + res.pageText + "] (URL: " + res.url + ")" });
+                                    }
                                 } else {
-                                    safeSendResponse({ success: false, error: "탭에서 데이터를 추출하지 못했습니다. 인스타그램에 로그인되어 있는지 확인하세요." });
+                                    safeSendResponse({ success: false, error: "탭에서 스크립트 실행 결과를 받지 못했습니다." });
                                 }
                             });
                         } catch (err) {
