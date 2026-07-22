@@ -149,98 +149,71 @@ async function startUrlDownload() {
     try {
         logToTerminal('웹 브라우저 HTTP Fetch 시도 중...', 'info');
         
-        // 1. Fetch webpage HTML directly via JS (Extension will bypass CORS!)
-        const response = await fetch(urlInput, {
-            headers: {
-                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
-            }
-        });
-
-        if (!response.ok) {
-            throw new Error(`HTTP 에러: ${response.status} ${response.statusText}`);
-        }
-
-        const htmlText = await response.text();
-        logToTerminal('웹페이지 HTML 수신 완료! 미디어 URL 파싱 중...', 'success');
-
-        // 2. Parse Video / Image URLs from HTML
         let mediaUrl = null;
         let mediaType = 'video';
         let title = 'AMEVA_Media';
 
-        if (urlInput.includes('tiktok.com')) {
-            title = 'TikTok_Video';
-            // TikTok Regex Parser for playAddr or video src
-            const playAddrMatch = htmlText.match(/"playAddr":"([^"]+)"/) || htmlText.match(/"downloadAddr":"([^"]+)"/);
-            const videoSrcMatch = htmlText.match(/<video[^>]+src="([^"]+)"/);
-
-            if (playAddrMatch) {
-                mediaUrl = playAddrMatch[1].replace(/\\u0026/g, '&').replace(/\\/g, '');
-            } else if (videoSrcMatch) {
-                mediaUrl = videoSrcMatch[1];
+        // 1. Try Direct Fetch first
+        try {
+            const response = await fetch(urlInput);
+            if (response.ok) {
+                const htmlText = await response.text();
+                if (urlInput.includes('tiktok.com')) {
+                    const playAddrMatch = htmlText.match(/"playAddr":"([^"]+)"/) || htmlText.match(/"downloadAddr":"([^"]+)"/);
+                    if (playAddrMatch) mediaUrl = playAddrMatch[1].replace(/\\u0026/g, '&').replace(/\\/g, '');
+                } else if (urlInput.includes('instagram.com')) {
+                    const ogVideoMatch = htmlText.match(/<meta[^>]+property="og:video"[^>]+content="([^"]+)"/);
+                    const ogImageMatch = htmlText.match(/<meta[^>]+property="og:image"[^>]+content="([^"]+)"/);
+                    if (ogVideoMatch) { mediaUrl = ogVideoMatch[1].replace(/&amp;/g, '&'); mediaType = 'video'; }
+                    else if (ogImageMatch) { mediaUrl = ogImageMatch[1].replace(/&amp;/g, '&'); mediaType = 'photo'; }
+                }
             }
-        } else if (urlInput.includes('instagram.com')) {
-            title = 'Instagram_Media';
-            // Instagram og:video / og:image parser
-            const ogVideoMatch = htmlText.match(/<meta[^>]+property="og:video"[^>]+content="([^"]+)"/) || htmlText.match(/<meta[^>]+content="([^"]+)"[^>]+property="og:video"/);
-            const ogImageMatch = htmlText.match(/<meta[^>]+property="og:image"[^>]+content="([^"]+)"/) || htmlText.match(/<meta[^>]+content="([^"]+)"[^>]+property="og:image"/);
+        } catch (e) {
+            console.log('Direct HTML fetch skipped/failed, trying API parser fallback...');
+        }
 
-            if (ogVideoMatch) {
-                mediaUrl = ogVideoMatch[1].replace(/&amp;/g, '&');
-                mediaType = 'video';
-            } else if (ogImageMatch) {
-                mediaUrl = ogImageMatch[1].replace(/&amp;/g, '&');
-                mediaType = 'photo';
+        // 2. Fallback: TikWM API for TikTok
+        if (!mediaUrl && urlInput.includes('tiktok.com')) {
+            logToTerminal('TikWM API 백업 엔진 연결 중...', 'info');
+            const tikRes = await fetch(`https://www.tikwm.com/api/?url=${encodeURIComponent(urlInput)}`);
+            const tikData = await tikRes.json();
+            if (tikData && tikData.data && tikData.data.play) {
+                mediaUrl = tikData.data.play;
+                title = `TikTok_${tikData.data.id || Date.now()}`;
             }
-        } else if (urlInput.includes('youtube.com') || urlInput.includes('youtu.be')) {
-            title = 'YouTube_Video';
-            const ogVideoMatch = htmlText.match(/<meta[^>]+property="og:video:url"[^>]+content="([^"]+)"/);
-            if (ogVideoMatch) {
-                mediaUrl = ogVideoMatch[1];
+        }
+
+        // 3. Fallback: DDInstagram / Insta API for Instagram
+        if (!mediaUrl && urlInput.includes('instagram.com')) {
+            logToTerminal('Instagram API 백업 엔진 연결 중...', 'info');
+            const cleanUrl = urlInput.split('?')[0];
+            const ddRes = await fetch(`${cleanUrl}?__a=1&__d=dis`);
+            if (ddRes.ok) {
+                const ddData = await ddRes.json();
+                const items = ddData.graphql ? ddData.graphql.shortcode_media : (ddData.items ? ddData.items[0] : null);
+                if (items) {
+                    mediaUrl = items.video_url || (items.image_versions2 ? items.image_versions2.candidates[0].url : null);
+                }
             }
         }
 
         if (!mediaUrl) {
-            // Fallback: try Pyodide extraction
-            logToTerminal('JS 파싱 실패. Pyodide WASM 파이썬 백업 추출을 시도합니다...', 'warn');
-            const pyCode = `
-import yt_dlp
-import json
-
-ydl_opts = {'quiet': True, 'skip_download': True}
-url = "${urlInput}"
-result_str = ""
-try:
-    with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-        info_dict = ydl.extract_info(url, download=False)
-        result_str = json.dumps(info_dict)
-except Exception as e:
-    result_str = json.dumps({"error": str(e)})
-result_str
-            `;
-            const pyResultStr = await pyodideInstance.runPythonAsync(pyCode);
-            const pyResult = JSON.parse(pyResultStr);
-            if (pyResult.error) throw new Error(pyResult.error);
-            if (pyResult.url) mediaUrl = pyResult.url;
+            throw new Error('미디어 주소를 추출하지 못했습니다. URL이 올바른지 확인해주세요.');
         }
 
-        if (!mediaUrl) {
-            throw new Error('페이지 내에서 다운로드 가능한 동영상/사진 주소를 찾지 못했습니다.');
-        }
+        logToTerminal(`추출 성공! 다운로드를 시작합니다...`, 'success');
 
-        logToTerminal(`추출 성공! 파일 다운로드 중: ${mediaUrl.substring(0, 60)}...`, 'success');
+        // Trigger Blob Download
+        const fileRes = await fetch(mediaUrl);
+        const fileBlob = await fileRes.blob();
+        const blobUrl = URL.revokeObjectURL ? URL.createObjectURL(fileBlob) : mediaUrl;
 
-        // 3. Trigger Browser Blob Download
-        const fileBlob = await fetch(mediaUrl).then(r => r.blob());
-        const blobUrl = URL.createObjectURL(fileBlob);
-        
         const a = document.createElement('a');
         a.href = blobUrl;
         a.download = `${title}_${Date.now()}.${mediaType === 'video' ? 'mp4' : 'jpg'}`;
         document.body.appendChild(a);
         a.click();
         document.body.removeChild(a);
-        URL.revokeObjectURL(blobUrl);
 
         logToTerminal('✅ 다운로드가 완료되었습니다!', 'success');
 
