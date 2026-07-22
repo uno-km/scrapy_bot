@@ -1,50 +1,55 @@
-/* styles.css */
+/* styles.css - Clean & Minimal Dark Theme */
 
-/* Custom Scrollbar for the Log Output */
+/* Custom Scrollbar for Terminal Log & Modal */
 .custom-scrollbar::-webkit-scrollbar {
-    width: 6px;
-    height: 6px;
+    width: 5px;
+    height: 5px;
 }
 .custom-scrollbar::-webkit-scrollbar-track {
-    background: rgba(17, 24, 39, 0.5); /* gray-900 */
+    background: #020617; /* slate-950 */
     border-radius: 4px;
 }
 .custom-scrollbar::-webkit-scrollbar-thumb {
-    background: rgba(75, 85, 99, 0.8); /* gray-600 */
+    background: #334155; /* slate-700 */
     border-radius: 4px;
 }
 .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-    background: rgba(107, 114, 128, 1); /* gray-500 */
+    background: #475569; /* slate-600 */
 }
 
-/* Glassmorphism Enhancements */
-.glass-panel {
-    box-shadow: 0 0 40px rgba(139, 92, 246, 0.1), inset 0 0 20px rgba(255, 255, 255, 0.05);
+/* Gallery Item Styling */
+.gallery-item {
+    transition: all 0.2s ease;
+}
+.gallery-item:hover {
+    border-color: #64748b; /* slate-500 */
+}
+.gallery-item.selected {
+    border-color: #f8fafc; /* white */
+    box-shadow: 0 0 0 1px #f8fafc;
 }
 
-/* Checkbox Styling for Gallery Items */
+/* Checkbox Styling */
 .media-item-checkbox {
     appearance: none;
-    background-color: rgba(31, 41, 55, 0.8);
+    background-color: rgba(15, 23, 42, 0.8);
     margin: 0;
-    font: inherit;
-    color: currentColor;
-    width: 1.5em;
-    height: 1.5em;
-    border: 2px solid #8b5cf6;
-    border-radius: 0.35em;
+    width: 1.25em;
+    height: 1.25em;
+    border: 1.5px solid #64748b;
+    border-radius: 0.25em;
     display: grid;
     place-content: center;
-    transition: all 0.2s ease-in-out;
+    transition: all 0.15s ease-in-out;
     cursor: pointer;
 }
 
 .media-item-checkbox::before {
     content: "";
-    width: 0.8em;
-    height: 0.8em;
+    width: 0.65em;
+    height: 0.65em;
     transform: scale(0);
-    transition: 120ms transform ease-in-out;
+    transition: 100ms transform ease-in-out;
     box-shadow: inset 1em 1em white;
     background-color: white;
     transform-origin: center;
@@ -52,22 +57,10 @@
 }
 
 .media-item-checkbox:checked {
-    background-color: #8b5cf6;
+    background-color: #020617;
+    border-color: #f8fafc;
 }
 
 .media-item-checkbox:checked::before {
     transform: scale(1);
-}
-
-/* Gallery Item Hover Effects */
-.gallery-item {
-    transition: all 0.3s ease;
-}
-.gallery-item:hover {
-    transform: translateY(-5px);
-    box-shadow: 0 10px 25px -5px rgba(139, 92, 246, 0.4);
-}
-.gallery-item.selected {
-    border-color: #8b5cf6;
-    box-shadow: 0 0 0 2px #8b5cf6, 0 10px 25px -5px rgba(139, 92, 246, 0.4);
 }

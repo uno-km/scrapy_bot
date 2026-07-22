@@ -30,6 +30,36 @@ function logToTerminal(message, type = 'info') {
     container.scrollTop = container.scrollHeight;
 }
 
+// Modal Controls
+function openExtensionModal() {
+    const modal = document.getElementById('extension-modal');
+    modal.classList.remove('hidden');
+    modal.classList.add('flex');
+}
+
+function closeExtensionModal() {
+    const modal = document.getElementById('extension-modal');
+    modal.classList.add('hidden');
+    modal.classList.remove('flex');
+}
+
+function switchExtTab(browser) {
+    const browsers = ['chrome', 'edge', 'whale', 'opera', 'firefox'];
+    browsers.forEach(b => {
+        const tabBtn = document.getElementById(`ext-tab-${b}`);
+        const content = document.getElementById(`ext-content-${b}`);
+        if (b === browser) {
+            tabBtn.classList.replace('text-slate-500', 'text-slate-100');
+            tabBtn.classList.replace('border-transparent', 'border-slate-100');
+            content.classList.remove('hidden');
+        } else {
+            tabBtn.classList.replace('text-slate-100', 'text-slate-500');
+            tabBtn.classList.replace('border-slate-100', 'border-transparent');
+            content.classList.add('hidden');
+        }
+    });
+}
+
 // Tab Switching Logic
 function switchTab(tabId) {
     const urlTab = document.getElementById('tab-url');
