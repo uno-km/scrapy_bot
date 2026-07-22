@@ -134,37 +134,80 @@ async function initWASM() {
     }
 }
 
-// Start URL Extraction
+// Start URL Extraction using Native JS Fetch (Compatible with CORS Extension)
 async function startUrlDownload() {
     const urlInput = document.getElementById('url-input').value.trim();
     if (!urlInput) {
-        logToTerminal('Please enter a valid URL.', 'error');
+        logToTerminal('다운로드할 URL을 입력해주세요.', 'error');
         return;
     }
 
-    if (!pyodideReady) {
-        logToTerminal('Please wait for the WASM engine to initialize.', 'warn');
-        return;
-    }
-
-    logToTerminal(`Starting extraction for: ${urlInput}`);
+    logToTerminal(`미디어 추출 시작: ${urlInput}`);
     btnDownloadUrl.disabled = true;
-    btnDownloadUrl.innerHTML = '<span class="animate-pulse">Extracting...</span>';
+    btnDownloadUrl.innerHTML = '<span class="animate-pulse">페이지 분석 중...</span>';
 
     try {
-        // Run Python code to extract info using yt-dlp
-        // WARNING: As expected and warned, this will fail in a real browser without a proxy due to CORS.
-        // We write the logic assuming it 'could' work if CORS wasn't an issue.
-        const pyCode = `
+        logToTerminal('웹 브라우저 HTTP Fetch 시도 중...', 'info');
+        
+        // 1. Fetch webpage HTML directly via JS (Extension will bypass CORS!)
+        const response = await fetch(urlInput, {
+            headers: {
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
+            }
+        });
+
+        if (!response.ok) {
+            throw new Error(`HTTP 에러: ${response.status} ${response.statusText}`);
+        }
+
+        const htmlText = await response.text();
+        logToTerminal('웹페이지 HTML 수신 완료! 미디어 URL 파싱 중...', 'success');
+
+        // 2. Parse Video / Image URLs from HTML
+        let mediaUrl = null;
+        let mediaType = 'video';
+        let title = 'AMEVA_Media';
+
+        if (urlInput.includes('tiktok.com')) {
+            title = 'TikTok_Video';
+            // TikTok Regex Parser for playAddr or video src
+            const playAddrMatch = htmlText.match(/"playAddr":"([^"]+)"/) || htmlText.match(/"downloadAddr":"([^"]+)"/);
+            const videoSrcMatch = htmlText.match(/<video[^>]+src="([^"]+)"/);
+
+            if (playAddrMatch) {
+                mediaUrl = playAddrMatch[1].replace(/\\u0026/g, '&').replace(/\\/g, '');
+            } else if (videoSrcMatch) {
+                mediaUrl = videoSrcMatch[1];
+            }
+        } else if (urlInput.includes('instagram.com')) {
+            title = 'Instagram_Media';
+            // Instagram og:video / og:image parser
+            const ogVideoMatch = htmlText.match(/<meta[^>]+property="og:video"[^>]+content="([^"]+)"/) || htmlText.match(/<meta[^>]+content="([^"]+)"[^>]+property="og:video"/);
+            const ogImageMatch = htmlText.match(/<meta[^>]+property="og:image"[^>]+content="([^"]+)"/) || htmlText.match(/<meta[^>]+content="([^"]+)"[^>]+property="og:image"/);
+
+            if (ogVideoMatch) {
+                mediaUrl = ogVideoMatch[1].replace(/&amp;/g, '&');
+                mediaType = 'video';
+            } else if (ogImageMatch) {
+                mediaUrl = ogImageMatch[1].replace(/&amp;/g, '&');
+                mediaType = 'photo';
+            }
+        } else if (urlInput.includes('youtube.com') || urlInput.includes('youtu.be')) {
+            title = 'YouTube_Video';
+            const ogVideoMatch = htmlText.match(/<meta[^>]+property="og:video:url"[^>]+content="([^"]+)"/);
+            if (ogVideoMatch) {
+                mediaUrl = ogVideoMatch[1];
+            }
+        }
+
+        if (!mediaUrl) {
+            // Fallback: try Pyodide extraction
+            logToTerminal('JS 파싱 실패. Pyodide WASM 파이썬 백업 추출을 시도합니다...', 'warn');
+            const pyCode = `
 import yt_dlp
 import json
 
-ydl_opts = {
-    'quiet': True,
-    'skip_download': True,
-    'extract_flat': 'in_playlist'
-}
-
+ydl_opts = {'quiet': True, 'skip_download': True}
 url = "${urlInput}"
 result_str = ""
 try:
@@ -173,32 +216,40 @@ try:
         result_str = json.dumps(info_dict)
 except Exception as e:
     result_str = json.dumps({"error": str(e)})
-
 result_str
-        `;
-        
-        logToTerminal('Executing yt-dlp in Python environment...', 'info');
-        
-        // Execute python string
-        const resultJsonString = await pyodideInstance.runPythonAsync(pyCode);
-        const result = JSON.parse(resultJsonString);
-
-        if (result.error) {
-            throw new Error(result.error);
+            `;
+            const pyResultStr = await pyodideInstance.runPythonAsync(pyCode);
+            const pyResult = JSON.parse(pyResultStr);
+            if (pyResult.error) throw new Error(pyResult.error);
+            if (pyResult.url) mediaUrl = pyResult.url;
         }
 
-        logToTerminal('Extraction successful (Mocked for UI rendering)!', 'success');
-        console.log(result);
+        if (!mediaUrl) {
+            throw new Error('페이지 내에서 다운로드 가능한 동영상/사진 주소를 찾지 못했습니다.');
+        }
+
+        logToTerminal(`추출 성공! 파일 다운로드 중: ${mediaUrl.substring(0, 60)}...`, 'success');
+
+        // 3. Trigger Browser Blob Download
+        const fileBlob = await fetch(mediaUrl).then(r => r.blob());
+        const blobUrl = URL.createObjectURL(fileBlob);
         
-        // Mocking behavior for TikTok photo galleries or general downloads since actual fetch will fail CORS
-        mockGalleryRender(result, 'url');
+        const a = document.createElement('a');
+        a.href = blobUrl;
+        a.download = `${title}_${Date.now()}.${mediaType === 'video' ? 'mp4' : 'jpg'}`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(blobUrl);
+
+        logToTerminal('✅ 다운로드가 완료되었습니다!', 'success');
 
     } catch (error) {
-        logToTerminal(`Extraction Error: ${error.message}`, 'error');
-        logToTerminal(`[CRITICAL] Browser CORS Policy Blocked the request. A proxy is required for browser-based fetching.`, 'error');
+        logToTerminal(`추출/다운로드 실패: ${error.message}`, 'error');
+        logToTerminal(`💡 팁: 'AMEVA Universal CORS Unblocker' 확장 프로그램이 켜져 있는지 확인하세요!`, 'warn');
     } finally {
         btnDownloadUrl.disabled = false;
-        btnDownloadUrl.innerHTML = 'Extract & Download';
+        btnDownloadUrl.innerHTML = '추출 및 다운로드';
     }
 }
 
