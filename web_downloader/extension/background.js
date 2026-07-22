@@ -57,34 +57,57 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
                             chrome.scripting.executeScript({
                                 target: { tabId: tabId },
                                 func: () => {
-                                    function findEdges(obj) {
-                                        if (!obj || typeof obj !== 'object') return null;
-                                        if (obj.edge_owner_to_timeline_media && obj.edge_owner_to_timeline_media.edges) {
-                                            return obj.edge_owner_to_timeline_media.edges;
+                                            let edgesMap = new Map();
+                                    
+                                    function extractNodes(obj) {
+                                        if (!obj || typeof obj !== 'object') return;
+                                        if (typeof obj.shortcode === 'string' && typeof obj.display_url === 'string') {
+                                            edgesMap.set(obj.shortcode, { node: obj });
                                         }
                                         for (let key in obj) {
-                                            let res = findEdges(obj[key]);
-                                            if (res) return res;
+                                            if (obj.hasOwnProperty(key)) {
+                                                extractNodes(obj[key]);
+                                            }
                                         }
-                                        return null;
                                     }
                                     
                                     let scripts = document.querySelectorAll('script');
-                                    let edges = [];
                                     for (let s of scripts) {
-                                        if (s.textContent.includes('edge_owner_to_timeline_media')) {
+                                        if (s.textContent.includes('shortcode') && s.textContent.includes('display_url')) {
                                             try {
-                                                if (s.type.includes('json') || s.type === 'application/json') {
+                                                if (s.type === 'application/json' || s.type.includes('json')) {
                                                     let data = JSON.parse(s.textContent);
-                                                    let found = findEdges(data);
-                                                    if (found && found.length > 0) { 
-                                                        edges = found; 
-                                                        break; 
-                                                    }
+                                                    extractNodes(data);
                                                 }
                                             } catch(e) {}
                                         }
                                     }
+                                    
+                                    let edges = Array.from(edgesMap.values());
+                                    
+                                    // DOM Fallback if JSON search yields nothing
+                                    if (edges.length === 0) {
+                                        let anchors = document.querySelectorAll('a[href^="/p/"], a[href^="/reel/"]');
+                                        for (let a of anchors) {
+                                            let match = a.href.match(/(?:p|reel)\/([^\/?#&]+)/);
+                                            if (match) {
+                                                let shortcode = match[1];
+                                                let img = a.querySelector('img');
+                                                if (img && !edgesMap.has(shortcode)) {
+                                                    edgesMap.set(shortcode, {
+                                                        node: {
+                                                            shortcode: shortcode,
+                                                            display_url: img.src,
+                                                            is_video: a.href.includes('/reel/') || !!a.querySelector('svg'),
+                                                            __from_dom: true
+                                                        }
+                                                    });
+                                                }
+                                            }
+                                        }
+                                        edges = Array.from(edgesMap.values());
+                                    }
+                                    
                                     return edges;
                                 }
                             }, (results) => {
