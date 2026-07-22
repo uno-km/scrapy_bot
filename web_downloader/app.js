@@ -50,7 +50,7 @@ function checkExtensionBridge() {
             if (event.source !== window) return;
             if (event.data && event.data.type === "AMEVA_EXT_PONG") {
                 window.removeEventListener("message", listener);
-                resolve(true);
+                resolve(event.data.version || true);
             }
         };
         window.addEventListener("message", listener);
@@ -166,7 +166,8 @@ async function initWASM() {
         logToTerminal('확장 프로그램 프록시 브릿지 연결 시도 중...', 'info', 'url');
         extBridgeReady = await checkExtensionBridge();
         if (extBridgeReady) {
-            logToTerminal('인스타그램 로그인 인증 우회 프록시 브릿지 연결 성공!', 'success', 'url');
+            const v = typeof extBridgeReady === 'string' ? `v${extBridgeReady}` : '';
+            logToTerminal(`인스타그램 로그인 인증 우회 프록시 브릿지 연결 성공! ${v}`, 'success', 'url');
             logToTerminal('인스타그램 쿠키를 활용하여 계정 및 스토리를 추출할 수 있습니다.', 'success', 'account');
         } else {
             logToTerminal('프록시 브릿지 없음. 인스타 계정 스캔은 공개 API로 제한됩니다.', 'warn', 'url');
