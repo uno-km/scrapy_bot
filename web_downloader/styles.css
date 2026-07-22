@@ -1,0 +1,73 @@
+/* styles.css */
+
+/* Custom Scrollbar for the Log Output */
+.custom-scrollbar::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+}
+.custom-scrollbar::-webkit-scrollbar-track {
+    background: rgba(17, 24, 39, 0.5); /* gray-900 */
+    border-radius: 4px;
+}
+.custom-scrollbar::-webkit-scrollbar-thumb {
+    background: rgba(75, 85, 99, 0.8); /* gray-600 */
+    border-radius: 4px;
+}
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+    background: rgba(107, 114, 128, 1); /* gray-500 */
+}
+
+/* Glassmorphism Enhancements */
+.glass-panel {
+    box-shadow: 0 0 40px rgba(139, 92, 246, 0.1), inset 0 0 20px rgba(255, 255, 255, 0.05);
+}
+
+/* Checkbox Styling for Gallery Items */
+.media-item-checkbox {
+    appearance: none;
+    background-color: rgba(31, 41, 55, 0.8);
+    margin: 0;
+    font: inherit;
+    color: currentColor;
+    width: 1.5em;
+    height: 1.5em;
+    border: 2px solid #8b5cf6;
+    border-radius: 0.35em;
+    display: grid;
+    place-content: center;
+    transition: all 0.2s ease-in-out;
+    cursor: pointer;
+}
+
+.media-item-checkbox::before {
+    content: "";
+    width: 0.8em;
+    height: 0.8em;
+    transform: scale(0);
+    transition: 120ms transform ease-in-out;
+    box-shadow: inset 1em 1em white;
+    background-color: white;
+    transform-origin: center;
+    clip-path: polygon(14% 44%, 0 65%, 50% 100%, 100% 16%, 80% 0%, 43% 62%);
+}
+
+.media-item-checkbox:checked {
+    background-color: #8b5cf6;
+}
+
+.media-item-checkbox:checked::before {
+    transform: scale(1);
+}
+
+/* Gallery Item Hover Effects */
+.gallery-item {
+    transition: all 0.3s ease;
+}
+.gallery-item:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 10px 25px -5px rgba(139, 92, 246, 0.4);
+}
+.gallery-item.selected {
+    border-color: #8b5cf6;
+    box-shadow: 0 0 0 2px #8b5cf6, 0 10px 25px -5px rgba(139, 92, 246, 0.4);
+}
