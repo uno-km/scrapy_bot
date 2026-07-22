@@ -124,36 +124,38 @@ function switchExtTab(browser) {
 
 function switchTab(tabId) {
     currentActiveTab = tabId;
+    
+    // 1. View 토글
     document.getElementById('view-url').classList.add('hidden');
     document.getElementById('view-account').classList.add('hidden');
     document.getElementById(`view-${tabId}`).classList.remove('hidden');
 
-    const tabs = document.querySelectorAll('.tab-btn');
-    tabs.forEach(t => {
-        t.classList.remove('active', 'bg-white/10', 'text-emerald-300', 'shadow-[0_4px_15px_rgba(16,185,129,0.2)]');
-        t.classList.add('text-slate-400', 'hover:bg-white/5');
-    });
+    // 2. Tab 버튼 스타일링 (모두 비활성화 후 선택된 탭만 활성화)
+    const urlTab = document.getElementById('tab-url');
+    const accountTab = document.getElementById('tab-account');
+    
+    const inactiveClasses = ['font-medium', 'text-slate-400', 'bg-transparent', 'border-transparent', 'hover:text-slate-200'];
+    const activeClasses = ['font-bold', 'text-white', 'bg-slate-900', 'border-white'];
 
-    const activeTab = document.getElementById(`tab-${tabId}`);
-    activeTab.classList.remove('text-slate-400', 'hover:bg-white/5');
-    activeTab.classList.add('active', 'bg-white/10', 'text-emerald-300', 'shadow-[0_4px_15px_rgba(16,185,129,0.2)]');
+    // 먼저 둘 다 비활성화 상태로 초기화
+    urlTab.classList.remove(...activeClasses);
+    urlTab.classList.add(...inactiveClasses);
+    accountTab.classList.remove(...activeClasses);
+    accountTab.classList.add(...inactiveClasses);
 
+    // 선택된 탭만 활성화 상태로 변경
+    const activeElem = document.getElementById(`tab-${tabId}`);
+    activeElem.classList.remove(...inactiveClasses);
+    activeElem.classList.add(...activeClasses);
+
+    // 3. 상태 정리
     galleryContainer.classList.add('hidden');
     mediaGrid.innerHTML = '';
     selectedMediaItems.clear();
     currentScrapedItemsMap.clear();
 
-    if (tabId === 'url') {
-        urlTab.className = 'flex-1 py-3 text-center font-bold text-sm text-white bg-slate-900 border-b-2 border-white rounded-t-xl transition-all';
-        accountTab.className = 'flex-1 py-3 text-center font-medium text-sm text-slate-400 bg-transparent border-b-2 border-transparent rounded-t-xl hover:text-slate-200 transition-all';
-        urlView.classList.remove('hidden');
-        accountView.classList.add('hidden');
-    } else {
-        accountTab.className = 'flex-1 py-3 text-center font-bold text-sm text-white bg-slate-900 border-b-2 border-white rounded-t-xl transition-all';
-        urlTab.className = 'flex-1 py-3 text-center font-medium text-sm text-slate-400 bg-transparent border-b-2 border-transparent rounded-t-xl hover:text-slate-200 transition-all';
-        accountView.classList.remove('hidden');
-        urlView.classList.add('hidden');
-    }
+    currentMode = tabId;
+    localStorage.setItem('ameva_last_tab', tabId);
 }
 
 // -------------------------------------------------------------
