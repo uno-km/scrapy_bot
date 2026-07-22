@@ -420,10 +420,23 @@ async function startAccountSearch() {
 
             if (mediaItems.length === 0) {
                 logToTerminal('TikTok 직접 스캔 중...', 'info', 'account');
-                const tiktokHtmlRes = await fetch(`https://www.tiktok.com/@${encodeURIComponent(accountInput)}`);
-                if (tiktokHtmlRes.ok) {
-                    const htmlText = await tiktokHtmlRes.text();
-                    const jsonMatch = htmlText.match(/<script id="__UNIVERSAL_DATA_FOR_REHYDRATION__"[^>]*>([^<]+)<\/script>/) || htmlText.match(/<script id="SIGI_STATE"[^>]*>([^<]+)<\/script>/);
+                
+                let htmlText = "";
+                if (extBridgeReady) {
+                    try {
+                        htmlText = await fetchViaExtensionBridge(`https://www.tiktok.com/@${encodeURIComponent(accountInput)}`);
+                    } catch (e) {
+                        logToTerminal('프록시 브릿지 스캔 실패, 일반 fetch 우회...', 'warn', 'account');
+                    }
+                }
+                
+                if (!htmlText) {
+                    const tiktokHtmlRes = await fetch(`https://www.tiktok.com/@${encodeURIComponent(accountInput)}`);
+                    if (tiktokHtmlRes.ok) htmlText = await tiktokHtmlRes.text();
+                }
+
+                if (htmlText) {
+                    const jsonMatch = htmlText.match(/<script id="__UNIVERSAL_DATA_FOR_REHYDRATION__"[^>]*>([\s\S]*?)<\/script>/) || htmlText.match(/<script id="SIGI_STATE"[^>]*>([\s\S]*?)<\/script>/);
                     if (jsonMatch) {
                         const jsonData = JSON.parse(jsonMatch[1]);
                         const itemList = jsonData?.default?.["user-post"]?.list || jsonData?.ItemModule || {};
