@@ -439,7 +439,7 @@ async function startAccountSearch() {
                     const jsonMatch = htmlText.match(/<script id="__UNIVERSAL_DATA_FOR_REHYDRATION__"[^>]*>([\s\S]*?)<\/script>/) || htmlText.match(/<script id="SIGI_STATE"[^>]*>([\s\S]*?)<\/script>/);
                     if (jsonMatch) {
                         const jsonData = JSON.parse(jsonMatch[1]);
-                        const itemList = jsonData?.default?.["user-post"]?.list || jsonData?.ItemModule || {};
+                        const itemList = jsonData?.default?.["user-post"]?.list || jsonData?.ItemModule || jsonData?.__DEFAULT_SCOPE__?.["webapp.user-detail"]?.itemList || {};
                         const videos = Array.isArray(itemList) ? itemList : Object.values(itemList);
                         
                         mediaItems = videos.map(v => ({
