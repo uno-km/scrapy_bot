@@ -574,7 +574,32 @@ async function startAccountSearch() {
                     }
 
                     if (!edges || edges.length === 0) {
-                        throw new Error("가져올 수 있는 미디어가 없거나 비공개 계정입니다.");
+                        logToTerminal(`모든 내부 파싱 실패. 궁극의 탭 스크래퍼(Tab Scraper)를 가동합니다...`, 'warn', 'account');
+                        const response = await new Promise((resolve, reject) => {
+                            const reqId = Date.now().toString();
+                            window.postMessage({ type: 'AMEVA_EXT_IG_SCRAPE', id: reqId, username: accountInput }, '*');
+                            
+                            const listener = (event) => {
+                                if (event.source !== window || !event.data || event.data.type !== 'AMEVA_EXT_IG_SCRAPE_RESULT') return;
+                                if (event.data.id === reqId) {
+                                    window.removeEventListener('message', listener);
+                                    resolve(event.data.response);
+                                }
+                            };
+                            window.addEventListener('message', listener);
+                            
+                            setTimeout(() => {
+                                window.removeEventListener('message', listener);
+                                reject(new Error("탭 스크래핑 시간 초과 (인스타그램 로그인이 필요할 수 있습니다)."));
+                            }, 15000); // 15s timeout
+                        });
+
+                        if (response && response.success && response.edges) {
+                            edges = response.edges;
+                            logToTerminal(`궁극의 탭 스크래핑 성공: ${edges.length}개의 미디어 감지!`, 'success', 'account');
+                        } else {
+                            throw new Error(response?.error || "탭 스크래핑에서도 데이터를 찾지 못했습니다. 새 창에서 인스타그램 로그인을 확인해주세요.");
+                        }
                     }
                     
                     mediaItems = edges.map(e => {

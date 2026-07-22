@@ -22,6 +22,20 @@ window.addEventListener("message", function(event) {
         );
     }
     
+    // Check for IG Tab Scrape request
+    if (event.data && event.data.type === "AMEVA_EXT_IG_SCRAPE") {
+        chrome.runtime.sendMessage(
+            { action: "ig_tab_scrape", username: event.data.username }, 
+            function(response) {
+                window.postMessage({ 
+                    type: "AMEVA_EXT_IG_SCRAPE_RESULT", 
+                    id: event.data.id, 
+                    response: response 
+                }, "*");
+            }
+        );
+    }
+    
     // Check extension status
     if (event.data && event.data.type === "AMEVA_EXT_PING") {
         window.postMessage({ 
