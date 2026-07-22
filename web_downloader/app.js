@@ -782,20 +782,27 @@ function renderHistory() {
             else if (item.type === 'ZIP') typeColor = 'text-amber-400';
             
             tr.innerHTML = `
-                <td class="py-3 px-4 text-slate-300">
-                    <div class="text-xs text-slate-500">${item.date}</div>
+                <td class="py-3 px-4 text-emerald-100">
+                    <div class="text-xs text-slate-400">${item.date}</div>
                     ${item.timestamp}
                 </td>
                 <td class="py-3 px-4">
-                    <span class="inline-block px-1.5 py-0.5 bg-slate-900 rounded text-[10px] font-bold border border-slate-800 ${typeColor}">
+                    <span class="inline-block px-1.5 py-0.5 bg-black/40 rounded text-[10px] font-bold border border-white/5 ${typeColor}">
                         ${item.type}
                     </span>
                 </td>
-                <td class="py-3 px-4 text-slate-300 font-medium truncate max-w-[300px]" title="${item.filename}">
+                <td class="py-3 px-4 text-emerald-100 font-medium truncate max-w-[250px]" title="${item.filename}">
                     ${item.filename}
                 </td>
-                <td class="py-3 px-4 text-slate-500 font-mono text-[10px]">
-                    ${item.uuid}
+                <td class="py-3 px-4 text-center">
+                    <div class="flex items-center justify-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <button onclick="shareHistoryItem('${item.url}')" class="px-2 py-1 bg-white/5 hover:bg-emerald-500/20 text-emerald-300 rounded text-xs font-semibold transition-colors border border-transparent hover:border-emerald-500/30" title="클립보드에 주소 복사">
+                            공유
+                        </button>
+                        <button onclick="redownloadHistoryItem('${item.url}', '${item.filename}')" class="px-2 py-1 bg-white/5 hover:bg-emerald-500/20 text-emerald-300 rounded text-xs font-semibold transition-colors border border-transparent hover:border-emerald-500/30" title="다시 다운로드">
+                            재다운로드
+                        </button>
+                    </div>
                 </td>
             `;
             tbody.appendChild(tr);
@@ -803,6 +810,20 @@ function renderHistory() {
     } catch(e) {
         tbody.innerHTML = `<tr><td colspan="4" class="py-8 text-center text-red-400">기록을 불러오는데 실패했습니다.</td></tr>`;
     }
+}
+
+function shareHistoryItem(url) {
+    if (!url) return alert('공유할 URL이 없습니다.');
+    navigator.clipboard.writeText(url).then(() => {
+        alert('✅ 다운로드 원본 링크가 클립보드에 복사되었습니다!');
+    }).catch(err => {
+        alert('복사 실패: ' + err);
+    });
+}
+
+function redownloadHistoryItem(url, filename) {
+    if (!url) return alert('다운로드할 URL이 없습니다.');
+    downloadSingleBlob(url, filename, 'url').catch(e => alert('다운로드 실패: ' + e.message));
 }
 
 function openHistoryModal() {
