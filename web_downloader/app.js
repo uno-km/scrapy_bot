@@ -699,7 +699,9 @@ async function downloadSelectedMedia() {
                 const tikwmRes = await fetch(`https://www.tikwm.com/api/?url=${encodeURIComponent(downloadUrl)}`);
                 const tikwmJson = await tikwmRes.json();
                 if (tikwmJson.data && tikwmJson.data.play) {
-                    downloadUrl = "https://www.tikwm.com" + tikwmJson.data.play;
+                    downloadUrl = tikwmJson.data.play.startsWith('http') 
+                        ? tikwmJson.data.play 
+                        : "https://www.tikwm.com" + tikwmJson.data.play;
                 } else {
                     throw new Error('원본 비디오 링크를 추출하지 못했습니다.');
                 }
