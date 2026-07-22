@@ -381,7 +381,7 @@ async function downloadSingleBlob(url, filename, mode = 'url') {
     a.click();
     document.body.removeChild(a);
     URL.revokeObjectURL(blobUrl);
-    saveToHistory(filename, url);
+    saveToHistory(filename, url, mode !== 'url' ? mode : null); // Here 'mode' is abused to pass mediaId in downloadSelectedMedia
 }
 
 // -------------------------------------------------------------
@@ -610,8 +610,12 @@ function renderRealGallery(items) {
     currentScrapedItemsMap.clear();
     updateDownloadButtonText();
 
+    const history = JSON.parse(localStorage.getItem('ameva_download_history') || '[]');
+    const downloadedIds = new Set(history.map(item => item.mediaId).filter(id => id));
+
     items.forEach(item => {
         currentScrapedItemsMap.set(item.id, item);
+        const isDownloaded = downloadedIds.has(item.id);
 
         const card = document.createElement('div');
         card.className = 'gallery-item relative rounded-xl overflow-hidden bg-slate-900 border border-slate-800 aspect-[9/16] cursor-pointer group';
@@ -628,6 +632,7 @@ function renderRealGallery(items) {
                 <span class="inline-block px-1.5 py-0.5 bg-slate-900/90 rounded text-[10px] font-bold ${item.type === 'video' ? 'text-blue-400' : 'text-pink-400'} mb-1 border border-slate-800">
                     ${item.type.toUpperCase()}
                 </span>
+                ${isDownloaded ? '<span class="inline-block ml-1 px-1.5 py-0.5 bg-emerald-500/90 rounded text-[10px] font-bold text-slate-950 mb-1 border border-emerald-400">✓ 다운로드됨</span>' : ''}
                 <p class="text-white text-xs font-medium truncate">${item.title}</p>
             </div>
         `;
@@ -683,6 +688,45 @@ function updateDownloadButtonText() {
 async function downloadSelectedMedia() {
     if (selectedMediaItems.size === 0) return;
     
+    const history = JSON.parse(localStorage.getItem('ameva_download_history') || '[]');
+    const downloadedIds = new Set(history.map(item => item.mediaId).filter(id => id));
+    
+    const duplicateItems = [];
+    for (const id of selectedMediaItems) {
+        if (downloadedIds.has(id)) {
+            const item = currentScrapedItemsMap.get(id);
+            if (item) duplicateItems.push(item);
+        }
+    }
+
+    if (duplicateItems.length > 0) {
+        // Show Redownload Modal
+        return new Promise((resolve) => {
+            const modal = document.getElementById('redownload-modal');
+            const list = document.getElementById('redownload-list');
+            const confirmBtn = document.getElementById('btn-confirm-redownload');
+            
+            list.innerHTML = duplicateItems.map(item => `<li>• ${item.title}</li>`).join('');
+            modal.classList.remove('hidden');
+            
+            confirmBtn.onclick = async () => {
+                modal.classList.add('hidden');
+                await executeBatchDownload();
+                resolve();
+            };
+            
+            window.closeRedownloadModal = () => {
+                modal.classList.add('hidden');
+                logToTerminal('다운로드가 취소되었습니다.', 'warn', 'account');
+                resolve();
+            };
+        });
+    } else {
+        await executeBatchDownload();
+    }
+}
+
+async function executeBatchDownload() {
     logToTerminal(`선택한 ${selectedMediaItems.size}개 미디어 일괄 다운로드를 시작합니다...`, 'info', 'account');
 
     for (const id of selectedMediaItems) {
@@ -707,10 +751,14 @@ async function downloadSelectedMedia() {
                 }
             }
             
-            await downloadSingleBlob(downloadUrl, `${item.title}_${Date.now()}.${item.type === 'video' ? 'mp4' : 'jpg'}`, 'account');
+            await downloadSingleBlob(downloadUrl, `${item.title}_${Date.now()}.${item.type === 'video' ? 'mp4' : 'jpg'}`, item.id);
             logToTerminal(`✅ 저장 완료: ${item.title}`, 'success', 'account');
         } catch (e) {
             logToTerminal(`❌ 저장 실패 (${item.title}): ${e.message}`, 'error', 'account');
+            if (e.message.includes('Failed to fetch') && !extBridgeReady) {
+                logToTerminal('확장프로그램이 설치되지 않아 CORS 차단이 발생했을 수 있습니다.', 'warn', 'account');
+                document.getElementById('ext-modal').classList.remove('hidden');
+            }
         }
     }
 
@@ -718,8 +766,20 @@ async function downloadSelectedMedia() {
 }
 
 // -------------------------------------------------------------
-// Bootup
+// Utilities & Bootup
 // -------------------------------------------------------------
+function copyToClipboard(text) {
+    navigator.clipboard.writeText(text).then(() => {
+        alert('주소가 클립보드에 복사되었습니다!\\n주소창에 붙여넣기 해주세요.');
+    }).catch(err => {
+        console.error('복사 실패:', err);
+    });
+}
+
+function closeRedownloadModal() {
+    document.getElementById('redownload-modal').classList.add('hidden');
+}
+
 window.addEventListener('DOMContentLoaded', () => {
     initWASM();
 });
@@ -737,7 +797,7 @@ function generateUUID() {
     });
 }
 
-function saveToHistory(filename, url) {
+function saveToHistory(filename, url, mediaId = null) {
     try {
         const history = JSON.parse(localStorage.getItem('ameva_download_history') || '[]');
         const type = filename.endsWith('.mp4') ? 'VIDEO' : (filename.endsWith('.zip') ? 'ZIP' : 'PHOTO');
@@ -750,7 +810,8 @@ function saveToHistory(filename, url) {
             date: now.toLocaleDateString('ko-KR'),
             filename: filename,
             url: url,
-            type: type
+            type: type,
+            mediaId: mediaId
         });
         
         if (history.length > 2000) history.length = 2000;
