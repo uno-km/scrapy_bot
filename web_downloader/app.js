@@ -599,7 +599,7 @@ async function startAccountSearch() {
                             setTimeout(() => {
                                 window.removeEventListener('message', listener);
                                 reject(new Error("탭 스크래핑 시간 초과 (인스타그램 로그인이 필요할 수 있습니다)."));
-                            }, 15000); // 15s timeout
+                            }, 20000);
                         });
 
                         if (response && response.success && response.edges) {
