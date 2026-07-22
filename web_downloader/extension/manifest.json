@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
-  "name": "AMEVA Downloader CORS Unblocker",
-  "version": "1.0",
-  "description": "CORS Unblocker for AMEVA Web Downloader",
+  "name": "AMEVA Universal CORS Unblocker",
+  "version": "1.0.0",
+  "description": "Cross-browser CORS Unblocker for AMEVA Web Downloader (Chrome, Edge, Whale, Opera, Firefox)",
   "permissions": [
     "declarativeNetRequest",
     "declarativeNetRequestWithHostAccess"
@@ -19,9 +19,10 @@
       }
     ]
   },
-  "icons": {
-    "16": "icon.png",
-    "48": "icon.png",
-    "128": "icon.png"
+  "browser_specific_settings": {
+    "gecko": {
+      "id": "cors-unblocker@ameva.downloader",
+      "strict_min_version": "109.0"
+    }
   }
 }
