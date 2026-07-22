@@ -532,16 +532,50 @@ async function startAccountSearch() {
                 logToTerminal('인스타그램 쿠키 인증 브릿지 활성화됨.', 'info', 'account');
                 try {
                     let profileJsonText = '';
+                    let edges = [];
+                    let user = null;
+
                     try {
-                        profileJsonText = await fetchViaExtensionBridge(`https://www.instagram.com/api/v1/users/web_profile_info/?username=${encodeURIComponent(accountInput)}`, { 'X-IG-App-ID': '936619743392459' });
+                        profileJsonText = await fetchViaExtensionBridge(`https://www.instagram.com/api/v1/users/web_profile_info/?username=${encodeURIComponent(accountInput)}`, { 
+                            'X-IG-App-ID': '936619743392459',
+                            'X-Requested-With': 'XMLHttpRequest'
+                        });
+                        const json = JSON.parse(profileJsonText);
+                        user = json.data?.user || json.graphql?.user;
+                        edges = user?.edge_owner_to_timeline_media?.edges || [];
                     } catch (apiErr) {
-                        logToTerminal(`기본 API 차단됨, 대체 엔드포인트(Fallback) 탐색 중...`, 'warn', 'account');
-                        profileJsonText = await fetchViaExtensionBridge(`https://www.instagram.com/${encodeURIComponent(accountInput)}/?__a=1&__d=dis`);
+                        logToTerminal(`기본 API 차단됨, HTML 분석 모드(Fallback)로 진입합니다...`, 'warn', 'account');
+                        const html = await fetchViaExtensionBridge(`https://www.instagram.com/${encodeURIComponent(accountInput)}/`);
+                        
+                        // Extract JSON from HTML
+                        const edgeMatch = html.match(/"edge_owner_to_timeline_media":\{"count":\d+,"page_info":\{.*?\},"edges":(\[.*?\])\}/);
+                        if (edgeMatch) {
+                            try {
+                                edges = JSON.parse(edgeMatch[1]);
+                                const idMatch = html.match(/"profile_id":"(\d+)"/) || html.match(/"id":"(\d+)"/);
+                                user = { id: idMatch ? idMatch[1] : null };
+                                logToTerminal(`HTML 파싱 성공: ${edges.length}개의 미디어 감지.`, 'success', 'account');
+                            } catch (e) {
+                                throw new Error("HTML 내장 JSON 파싱 실패");
+                            }
+                        } else {
+                            // Extract user_id to use GraphQL as last resort
+                            const idMatch = html.match(/"profile_id":"(\d+)"/) || html.match(/"user_id":"(\d+)"/);
+                            if (idMatch) {
+                                logToTerminal(`사용자 ID(${idMatch[1]}) 획득, GraphQL API 우회 시도...`, 'info', 'account');
+                                const gqlText = await fetchViaExtensionBridge(`https://www.instagram.com/graphql/query/?query_hash=69cba40317214236af40e7efa697781d&variables={"id":"${idMatch[1]}","first":12}`);
+                                const gqlJson = JSON.parse(gqlText);
+                                user = gqlJson.data?.user;
+                                edges = user?.edge_owner_to_timeline_media?.edges || [];
+                            } else {
+                                throw new Error("프로필 데이터 및 ID를 HTML에서 찾을 수 없습니다.");
+                            }
+                        }
                     }
 
-                    const json = JSON.parse(profileJsonText);
-                    const user = json.data?.user || json.graphql?.user;
-                    const edges = user?.edge_owner_to_timeline_media?.edges || [];
+                    if (!edges || edges.length === 0) {
+                        throw new Error("가져올 수 있는 미디어가 없거나 비공개 계정입니다.");
+                    }
                     
                     mediaItems = edges.map(e => {
                         const node = e.node;
@@ -559,7 +593,6 @@ async function startAccountSearch() {
                     if (userId) {
                         try {
                             await fetchViaExtensionBridge(`https://www.instagram.com/graphql/query/?query_hash=x&variables={"reel_ids":["${userId}"],"precomposed_overlay":false}`);
-                            // We don't parse stories perfectly here without complex mapping, but it shows we can access it!
                             logToTerminal('스토리 스캔 쿼리를 전송했습니다 (인증됨).', 'success', 'account');
                         } catch (stErr) {
                             // ignore story fail
