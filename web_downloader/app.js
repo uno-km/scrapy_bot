@@ -482,23 +482,25 @@ async function startAccountSearch() {
                     }
                     
                     if (ubHtml) {
-                        const videoIds = [];
-                        const regex = /href="https:\/\/urlebird\.com\/video\/[^"]+-(\d+)\/"/g;
+                        const itemsMap = new Map();
+                        // This regex searches for the video link and the immediate img tag after it
+                        const regex = /href="https:\/\/urlebird\.com\/video\/[^"]+-(\d+)\/"[^>]*>[\s\S]*?<img[^>]+src="([^"]+)"/g;
                         let match;
                         while ((match = regex.exec(ubHtml)) !== null) {
-                            videoIds.push(match[1]);
+                            if (!itemsMap.has(match[1])) {
+                                itemsMap.set(match[1], match[2]);
+                            }
                         }
                         
-                        const uniqueIds = [...new Set(videoIds)];
-                        if (uniqueIds.length > 0) {
-                            mediaItems = uniqueIds.map(id => ({
+                        if (itemsMap.size > 0) {
+                            mediaItems = Array.from(itemsMap.entries()).map(([id, thumb]) => ({
                                 id: id,
                                 type: 'video',
-                                thumb: `https://www.tikwm.com/video/cover/${id}.webp`,
+                                thumb: thumb, // Use the proxy thumbnail from UrleBird
                                 url: `https://www.tiktok.com/@${accountInput}/video/${id}`,
                                 title: `TikTok_${id}`
                             }));
-                            logToTerminal(`퍼블릭 아카이브(UrleBird)에서 ${uniqueIds.length}개의 영상을 찾았습니다!`, 'success', 'account');
+                            logToTerminal(`퍼블릭 아카이브(UrleBird)에서 ${itemsMap.size}개의 영상을 찾았습니다!`, 'success', 'account');
                         } else {
                             logToTerminal('퍼블릭 아카이브(UrleBird)에서 영상을 찾지 못했습니다.', 'warn', 'account');
                         }
