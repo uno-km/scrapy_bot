@@ -124,11 +124,20 @@ function switchExtTab(browser) {
 
 function switchTab(tabId) {
     currentActiveTab = tabId;
-    const urlTab = document.getElementById('tab-url');
-    const accountTab = document.getElementById('tab-account');
-    const urlView = document.getElementById('view-url');
-    const accountView = document.getElementById('view-account');
-    
+    document.getElementById('view-url').classList.add('hidden');
+    document.getElementById('view-account').classList.add('hidden');
+    document.getElementById(`view-${tabId}`).classList.remove('hidden');
+
+    const tabs = document.querySelectorAll('.tab-btn');
+    tabs.forEach(t => {
+        t.classList.remove('active', 'bg-white/10', 'text-emerald-300', 'shadow-[0_4px_15px_rgba(16,185,129,0.2)]');
+        t.classList.add('text-slate-400', 'hover:bg-white/5');
+    });
+
+    const activeTab = document.getElementById(`tab-${tabId}`);
+    activeTab.classList.remove('text-slate-400', 'hover:bg-white/5');
+    activeTab.classList.add('active', 'bg-white/10', 'text-emerald-300', 'shadow-[0_4px_15px_rgba(16,185,129,0.2)]');
+
     galleryContainer.classList.add('hidden');
     mediaGrid.innerHTML = '';
     selectedMediaItems.clear();
@@ -536,45 +545,41 @@ async function startAccountSearch() {
                     let user = null;
 
                     try {
-                        profileJsonText = await fetchViaExtensionBridge(`https://www.instagram.com/api/v1/users/web_profile_info/?username=${encodeURIComponent(accountInput)}`, { 
-                            'X-IG-App-ID': '936619743392459',
-                            'X-Requested-With': 'XMLHttpRequest'
-                        });
-                        const json = JSON.parse(profileJsonText);
-                        user = json.data?.user || json.graphql?.user;
-                        edges = user?.edge_owner_to_timeline_media?.edges || [];
-                    } catch (apiErr) {
-                        logToTerminal(`기본 API 차단됨, HTML 분석 모드(Fallback)로 진입합니다...`, 'warn', 'account');
-                        const html = await fetchViaExtensionBridge(`https://www.instagram.com/${encodeURIComponent(accountInput)}/`);
-                        
-                        // Extract JSON from HTML
-                        const edgeMatch = html.match(/"edge_owner_to_timeline_media":\{"count":\d+,"page_info":\{.*?\},"edges":(\[.*?\])\}/);
-                        if (edgeMatch) {
-                            try {
+                        try {
+                            profileJsonText = await fetchViaExtensionBridge(`https://www.instagram.com/api/v1/users/web_profile_info/?username=${encodeURIComponent(accountInput)}`, { 
+                                'X-IG-App-ID': '936619743392459',
+                                'X-Requested-With': 'XMLHttpRequest'
+                            });
+                            const json = JSON.parse(profileJsonText);
+                            user = json.data?.user || json.graphql?.user;
+                            edges = user?.edge_owner_to_timeline_media?.edges || [];
+                        } catch (apiErr) {
+                            logToTerminal(`기본 API 차단됨, HTML 분석 모드(Fallback)로 진입합니다...`, 'warn', 'account');
+                            const html = await fetchViaExtensionBridge(`https://www.instagram.com/${encodeURIComponent(accountInput)}/`);
+                            
+                            // Extract JSON from HTML
+                            const edgeMatch = html.match(/"edge_owner_to_timeline_media":\{"count":\d+,"page_info":\{.*?\},"edges":(\[.*?\])\}/);
+                            if (edgeMatch) {
                                 edges = JSON.parse(edgeMatch[1]);
                                 const idMatch = html.match(/"profile_id":"(\d+)"/) || html.match(/"id":"(\d+)"/);
                                 user = { id: idMatch ? idMatch[1] : null };
                                 logToTerminal(`HTML 파싱 성공: ${edges.length}개의 미디어 감지.`, 'success', 'account');
-                            } catch (e) {
-                                throw new Error("HTML 내장 JSON 파싱 실패");
-                            }
-                        } else {
-                            // Extract user_id to use GraphQL as last resort
-                            const idMatch = html.match(/"profile_id":"(\d+)"/) || html.match(/"user_id":"(\d+)"/);
-                            if (idMatch) {
-                                logToTerminal(`사용자 ID(${idMatch[1]}) 획득, GraphQL API 우회 시도...`, 'info', 'account');
-                                const gqlText = await fetchViaExtensionBridge(`https://www.instagram.com/graphql/query/?query_hash=69cba40317214236af40e7efa697781d&variables={"id":"${idMatch[1]}","first":12}`);
-                                const gqlJson = JSON.parse(gqlText);
-                                user = gqlJson.data?.user;
-                                edges = user?.edge_owner_to_timeline_media?.edges || [];
                             } else {
-                                throw new Error("프로필 데이터 및 ID를 HTML에서 찾을 수 없습니다.");
+                                // Extract user_id to use GraphQL as last resort
+                                const idMatch = html.match(/"profile_id":"(\d+)"/) || html.match(/"user_id":"(\d+)"/);
+                                if (idMatch) {
+                                    logToTerminal(`사용자 ID(${idMatch[1]}) 획득, GraphQL API 우회 시도...`, 'info', 'account');
+                                    const gqlText = await fetchViaExtensionBridge(`https://www.instagram.com/graphql/query/?query_hash=69cba40317214236af40e7efa697781d&variables={"id":"${idMatch[1]}","first":12}`);
+                                    const gqlJson = JSON.parse(gqlText);
+                                    user = gqlJson.data?.user;
+                                    edges = user?.edge_owner_to_timeline_media?.edges || [];
+                                } else {
+                                    throw new Error("프로필 데이터 및 ID를 HTML에서 찾을 수 없습니다.");
+                                }
                             }
                         }
-                    }
-
-                    if (!edges || edges.length === 0) {
-                        logToTerminal(`모든 내부 파싱 실패. 궁극의 탭 스크래퍼(Tab Scraper)를 가동합니다...`, 'warn', 'account');
+                    } catch (parseErr) {
+                        logToTerminal(`모든 내부 파싱 완전 차단됨(${parseErr.message.substring(0, 30)}). 궁극의 탭 스크래퍼(Tab Scraper)를 가동합니다...`, 'warn', 'account');
                         const response = await new Promise((resolve, reject) => {
                             const reqId = Date.now().toString();
                             window.postMessage({ type: 'AMEVA_EXT_IG_SCRAPE', id: reqId, username: accountInput }, '*');
@@ -600,6 +605,10 @@ async function startAccountSearch() {
                         } else {
                             throw new Error(response?.error || "탭 스크래핑에서도 데이터를 찾지 못했습니다. 새 창에서 인스타그램 로그인을 확인해주세요.");
                         }
+                    }
+
+                    if (!edges || edges.length === 0) {
+                        throw new Error("가져올 수 있는 미디어가 없거나 비공개 계정입니다.");
                     }
                     
                     mediaItems = edges.map(e => {
@@ -848,6 +857,20 @@ function closeRedownloadModal() {
 
 window.addEventListener('DOMContentLoaded', () => {
     initWASM();
+    
+    // Restore state from localStorage
+    const lastTab = localStorage.getItem('ameva_last_tab') || 'url';
+    const lastPlatform = localStorage.getItem('ameva_last_platform') || 'tiktok';
+    
+    switchTab(lastTab);
+    
+    const platformSelect = document.getElementById('platform-select');
+    if (platformSelect) {
+        platformSelect.value = lastPlatform;
+        platformSelect.addEventListener('change', (e) => {
+            localStorage.setItem('ameva_last_platform', e.target.value);
+        });
+    }
 });
 
 // -------------------------------------------------------------
