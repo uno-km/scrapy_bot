@@ -75,7 +75,7 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
                             return edges;
                         }
                     }, (results) => {
-                        chrome.tabs.remove(tabId).catch(()=>{}); // close tab automatically
+                        try { chrome.tabs.remove(tabId, () => { let _ = chrome.runtime.lastError; }); } catch(e) {} // safely close tab
                         if (results && results[0] && results[0].result && results[0].result.length > 0) {
                             sendResponse({ success: true, edges: results[0].result });
                         } else {
