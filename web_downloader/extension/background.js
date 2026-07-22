@@ -6,7 +6,8 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
         
         const fetchOptions = {
             method: 'GET',
-            headers: request.headers || {}
+            headers: request.headers || {},
+            credentials: 'include'
         };
 
         fetch(request.url, fetchOptions)
