@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="ko" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AMEVA Extension</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        slate: {
+                            850: '#111827',
+                            900: '#0f172a',
+                            950: '#020617',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <link rel="stylesheet" href="popup.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body class="bg-slate-950 text-slate-100 font-['Inter'] w-[440px] min-h-[520px] m-0 p-0 selection:bg-slate-700 selection:text-white">
+
+    <!-- Header -->
+    <header class="border-b border-slate-800 bg-slate-900 px-4 py-3 flex justify-between items-center">
+        <div class="flex items-center gap-2">
+            <span class="text-lg font-bold tracking-tight text-white">AMEVA <span class="text-xs text-slate-400 font-normal">Universal Extension</span></span>
+        </div>
+        <span class="text-[10px] bg-slate-800 border border-slate-700 px-2 py-0.5 rounded text-slate-300">v1.0.0</span>
+    </header>
+
+    <!-- Navigation Tabs -->
+    <nav class="flex border-b border-slate-800 bg-slate-950">
+        <button id="tab-url" class="flex-1 py-2.5 text-center font-medium text-xs text-slate-100 border-b-2 border-slate-100 transition-all" onclick="switchTab('url')">
+            🔗 URL 다운로드
+        </button>
+        <button id="tab-account" class="flex-1 py-2.5 text-center font-medium text-xs text-slate-500 border-b-2 border-transparent transition-all hover:text-slate-300" onclick="switchTab('account')">
+            👤 계정 스캔
+        </button>
+        <button id="tab-db" class="flex-1 py-2.5 text-center font-medium text-xs text-slate-500 border-b-2 border-transparent transition-all hover:text-slate-300" onclick="switchTab('db')">
+            💾 Web DB 기록
+        </button>
+    </nav>
+
+    <!-- Main Content -->
+    <main class="p-4 space-y-4">
+        
+        <!-- Tab 1: Direct URL -->
+        <div id="view-url" class="space-y-3 block">
+            <div>
+                <label class="block text-[11px] font-semibold text-slate-400 uppercase tracking-wider mb-1.5">미디어 URL</label>
+                <input type="text" id="url-input" placeholder="https://www.tiktok.com/... 또는 https://www.instagram.com/..." 
+                    class="w-full bg-slate-900 border border-slate-800 text-slate-100 rounded-lg px-3 py-2.5 text-xs focus:outline-none focus:border-slate-600 transition-colors">
+            </div>
+            <button id="btn-download-url" class="w-full py-2.5 rounded-lg font-semibold text-xs bg-slate-100 text-slate-950 hover:bg-white transition-all shadow-sm" onclick="startDirectDownload()">
+                즉시 다운로드 실행
+            </button>
+        </div>
+
+        <!-- Tab 2: Account Search -->
+        <div id="view-account" class="space-y-3 hidden">
+            <div class="grid grid-cols-3 gap-2">
+                <div>
+                    <label class="block text-[11px] font-semibold text-slate-400 uppercase tracking-wider mb-1.5">플랫폼</label>
+                    <select id="platform-select" class="w-full bg-slate-900 border border-slate-800 text-slate-100 rounded-lg px-2.5 py-2.5 text-xs focus:outline-none focus:border-slate-600">
+                        <option value="TikTok">TikTok</option>
+                        <option value="Instagram">Instagram</option>
+                    </select>
+                </div>
+                <div class="col-span-2">
+                    <label class="block text-[11px] font-semibold text-slate-400 uppercase tracking-wider mb-1.5">계정 아이디</label>
+                    <div class="flex">
+                        <span class="inline-flex items-center px-2.5 rounded-l-lg border border-r-0 border-slate-800 bg-slate-900 text-slate-500 text-xs">@</span>
+                        <input type="text" id="account-input" placeholder="username" 
+                            class="flex-1 bg-slate-900 border border-slate-800 text-slate-100 rounded-r-lg px-3 py-2.5 text-xs focus:outline-none focus:border-slate-600">
+                    </div>
+                </div>
+            </div>
+            <button id="btn-search-account" class="w-full py-2.5 rounded-lg font-semibold text-xs bg-slate-100 text-slate-950 hover:bg-white transition-all shadow-sm" onclick="startAccountScan()">
+                피드 미디어 스캔
+            </button>
+
+            <!-- Gallery Grid -->
+            <div id="account-gallery" class="hidden pt-2 border-t border-slate-800">
+                <div class="flex justify-between items-center mb-2">
+                    <span class="text-xs font-semibold text-slate-300">스캔 결과</span>
+                    <button id="btn-download-selected" class="px-2.5 py-1 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded text-[11px] font-medium transition-colors" onclick="downloadSelectedFromScan()">
+                        선택 다운로드 (0)
+                    </button>
+                </div>
+                <div id="scan-grid" class="grid grid-cols-3 gap-2 max-h-48 overflow-y-auto custom-scrollbar p-1">
+                    <!-- Dynamic Items -->
+                </div>
+            </div>
+        </div>
+
+        <!-- Tab 3: Web DB History -->
+        <div id="view-db" class="space-y-3 hidden">
+            <div class="flex justify-between items-center">
+                <span class="text-xs font-semibold text-slate-300">IndexedDB 다운로드 기록</span>
+                <button onclick="clearHistoryRecords()" class="text-[11px] text-slate-500 hover:text-red-400 transition-colors">기록 전체 삭제</button>
+            </div>
+            <div id="history-container" class="bg-slate-900 border border-slate-800 rounded-lg p-2 max-h-64 overflow-y-auto custom-scrollbar space-y-1.5 text-xs">
+                <!-- History Items Injected Here -->
+            </div>
+        </div>
+
+        <!-- Terminal Output -->
+        <div class="pt-2 border-t border-slate-800">
+            <div class="flex justify-between items-center mb-1">
+                <span class="text-[10px] font-mono text-slate-500 uppercase tracking-wider">Status Console</span>
+                <button onclick="document.getElementById('log-output').innerHTML=''" class="text-[10px] text-slate-500 hover:text-slate-300">Clear</button>
+            </div>
+            <div class="bg-slate-950 border border-slate-800 rounded-lg p-2 font-mono text-[11px] h-24 overflow-y-auto custom-scrollbar" id="log-container">
+                <ul id="log-output" class="space-y-0.5">
+                    <li class="text-slate-500">[System] AMEVA Extension Engine Ready</li>
+                </ul>
+            </div>
+        </div>
+
+    </main>
+
+    <script src="db.js"></script>
+    <script src="popup.js"></script>
+</body>
+</html>

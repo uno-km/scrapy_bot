@@ -1,0 +1,45 @@
+{
+  "manifest_version": 3,
+  "name": "AMEVA Universal Downloader",
+  "version": "1.0.0",
+  "description": "Universal Media Downloader with Web DB History for TikTok, Instagram, and YouTube",
+  "permissions": [
+    "storage",
+    "downloads",
+    "activeTab",
+    "scripting",
+    "declarativeNetRequest",
+    "declarativeNetRequestWithHostAccess"
+  ],
+  "host_permissions": [
+    "<all_urls>"
+  ],
+  "background": {
+    "service_worker": "background.js"
+  },
+  "action": {
+    "default_popup": "popup.html",
+    "default_title": "AMEVA Downloader"
+  },
+  "content_scripts": [
+    {
+      "matches": [
+        "*://*.instagram.com/*",
+        "*://*.tiktok.com/*"
+      ],
+      "css": [
+        "content.css"
+      ],
+      "js": [
+        "content.js"
+      ],
+      "run_at": "document_end"
+    }
+  ],
+  "browser_specific_settings": {
+    "gecko": {
+      "id": "universal-downloader@ameva",
+      "strict_min_version": "109.0"
+    }
+  }
+}

@@ -1,0 +1,28 @@
+/* popup.css */
+
+.custom-scrollbar::-webkit-scrollbar {
+    width: 4px;
+    height: 4px;
+}
+.custom-scrollbar::-webkit-scrollbar-track {
+    background: #020617;
+    border-radius: 4px;
+}
+.custom-scrollbar::-webkit-scrollbar-thumb {
+    background: #334155;
+    border-radius: 4px;
+}
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+    background: #475569;
+}
+
+.gallery-card {
+    transition: all 0.15s ease;
+}
+.gallery-card:hover {
+    border-color: #64748b;
+}
+.gallery-card.selected {
+    border-color: #f8fafc;
+    box-shadow: 0 0 0 1px #f8fafc;
+}
