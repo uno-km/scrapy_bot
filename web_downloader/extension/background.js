@@ -52,88 +52,97 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
                     injected = true;
                     chrome.tabs.onUpdated.removeListener(listener);
                     
-                    setTimeout(() => {
-                        try {
-                            chrome.scripting.executeScript({
-                                target: { tabId: tabId },
-                                func: () => {
-                                            let edgesMap = new Map();
-                                    
-                                    function extractNodes(obj) {
-                                        if (!obj || typeof obj !== 'object') return;
-                                        if (typeof obj.shortcode === 'string' && typeof obj.display_url === 'string') {
-                                            edgesMap.set(obj.shortcode, { node: obj });
-                                        }
-                                        for (let key in obj) {
-                                            if (obj.hasOwnProperty(key)) {
-                                                extractNodes(obj[key]);
+                    try {
+                        chrome.scripting.executeScript({
+                            target: { tabId: tabId },
+                            func: () => {
+                                return new Promise((resolve) => {
+                                    let attempts = 0;
+                                    let checkInterval = setInterval(() => {
+                                        let edgesMap = new Map();
+                                        
+                                        // 1. JSON Extraction attempt
+                                        function extractNodes(obj) {
+                                            if (!obj || typeof obj !== 'object') return;
+                                            if (typeof obj.shortcode === 'string' && typeof obj.display_url === 'string') {
+                                                edgesMap.set(obj.shortcode, { node: obj });
                                             }
-                                        }
-                                    }
-                                    
-                                    let scripts = document.querySelectorAll('script');
-                                    for (let s of scripts) {
-                                        if (s.textContent.includes('shortcode') && s.textContent.includes('display_url')) {
-                                            try {
-                                                if (s.type === 'application/json' || s.type.includes('json')) {
-                                                    let data = JSON.parse(s.textContent);
-                                                    extractNodes(data);
-                                                }
-                                            } catch(e) {}
-                                        }
-                                    }
-                                    
-                                    let edges = Array.from(edgesMap.values());
-                                    
-                                    // DOM Fallback if JSON search yields nothing
-                                    if (edges.length === 0) {
-                                        let anchors = document.querySelectorAll('a[href^="/p/"], a[href^="/reel/"]');
-                                        for (let a of anchors) {
-                                            let match = a.href.match(/(?:p|reel)\/([^\/?#&]+)/);
-                                            if (match) {
-                                                let shortcode = match[1];
-                                                let img = a.querySelector('img');
-                                                if (img && !edgesMap.has(shortcode)) {
-                                                    edgesMap.set(shortcode, {
-                                                        node: {
-                                                            shortcode: shortcode,
-                                                            display_url: img.src,
-                                                            is_video: a.href.includes('/reel/') || !!a.querySelector('svg'),
-                                                            __from_dom: true
-                                                        }
-                                                    });
+                                            for (let key in obj) {
+                                                if (obj.hasOwnProperty(key)) {
+                                                    extractNodes(obj[key]);
                                                 }
                                             }
                                         }
-                                        edges = Array.from(edgesMap.values());
-                                    }
-                                    
-                                    let pageText = document.body ? document.body.innerText.substring(0, 200).replace(/\n/g, ' ') : "No body";
-                                    return { edges: edges, pageText: pageText, url: window.location.href };
-                                }
-                            }, (results) => {
-                                try { chrome.tabs.remove(tabId, () => { let _ = chrome.runtime.lastError; }); } catch(e) {} // safely close tab
-                                
-                                if (chrome.runtime.lastError) {
-                                    safeSendResponse({ success: false, error: chrome.runtime.lastError.message });
-                                    return;
-                                }
+                                        
+                                        let scripts = document.querySelectorAll('script');
+                                        for (let s of scripts) {
+                                            if (s.textContent.includes('shortcode') && s.textContent.includes('display_url')) {
+                                                try {
+                                                    if (s.type === 'application/json' || s.type.includes('json')) {
+                                                        extractNodes(JSON.parse(s.textContent));
+                                                    }
+                                                } catch(e) {}
+                                            }
+                                        }
+                                        
+                                        let edges = Array.from(edgesMap.values());
+                                        
+                                        // 2. DOM Extraction attempt
+                                        if (edges.length === 0) {
+                                            let anchors = document.querySelectorAll('a[href^="/p/"], a[href^="/reel/"]');
+                                            for (let a of anchors) {
+                                                let match = a.href.match(/(?:p|reel)\/([^\/?#&]+)/);
+                                                if (match) {
+                                                    let shortcode = match[1];
+                                                    let img = a.querySelector('img');
+                                                    if (img && !edgesMap.has(shortcode)) {
+                                                        edgesMap.set(shortcode, {
+                                                            node: {
+                                                                shortcode: shortcode,
+                                                                display_url: img.src,
+                                                                is_video: a.href.includes('/reel/') || !!a.querySelector('svg'),
+                                                                __from_dom: true
+                                                            }
+                                                        });
+                                                    }
+                                                }
+                                            }
+                                            edges = Array.from(edgesMap.values());
+                                        }
+                                        
+                                        attempts++;
+                                        
+                                        // If we found posts, or we tried for 8 seconds (16 attempts * 500ms)
+                                        if (edges.length > 0 || attempts >= 16) {
+                                            clearInterval(checkInterval);
+                                            let pageText = document.body ? document.body.innerText.substring(0, 200).replace(/\n/g, ' ') : "No body";
+                                            resolve({ edges: edges, pageText: pageText, url: window.location.href });
+                                        }
+                                    }, 500); // Check every 500ms
+                                });
+                            }
+                        }, (results) => {
+                            try { chrome.tabs.remove(tabId, () => { let _ = chrome.runtime.lastError; }); } catch(e) {} // safely close tab
+                            
+                            if (chrome.runtime.lastError) {
+                                safeSendResponse({ success: false, error: chrome.runtime.lastError.message });
+                                return;
+                            }
 
-                                if (results && results[0] && results[0].result) {
-                                    let res = results[0].result;
-                                    if (res.edges && res.edges.length > 0) {
-                                        safeSendResponse({ success: true, edges: res.edges });
-                                    } else {
-                                        safeSendResponse({ success: false, error: "데이터 없음. 탭 화면 요약: [" + res.pageText + "] (URL: " + res.url + ")" });
-                                    }
+                            if (results && results[0] && results[0].result) {
+                                let res = results[0].result;
+                                if (res.edges && res.edges.length > 0) {
+                                    safeSendResponse({ success: true, edges: res.edges });
                                 } else {
-                                    safeSendResponse({ success: false, error: "탭에서 스크립트 실행 결과를 받지 못했습니다." });
+                                    safeSendResponse({ success: false, error: "데이터 없음. 탭 화면 요약: [" + res.pageText + "] (URL: " + res.url + ")" });
                                 }
-                            });
-                        } catch (err) {
-                            safeSendResponse({ success: false, error: "스크립트 주입 에러: " + err.message });
-                        }
-                    }, 3000); // 3 seconds wait
+                            } else {
+                                safeSendResponse({ success: false, error: "탭에서 스크립트 실행 결과를 받지 못했습니다." });
+                            }
+                        });
+                    } catch (err) {
+                        safeSendResponse({ success: false, error: "스크립트 주입 에러: " + err.message });
+                    }
                 };
 
                 const listener = function(changedTabId, info) {
