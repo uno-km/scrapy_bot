@@ -8,6 +8,10 @@
         {
           "header": "Origin",
           "operation": "remove"
+        },
+        {
+          "header": "Referer",
+          "operation": "remove"
         }
       ],
       "responseHeaders": [
@@ -31,15 +35,20 @@
     "condition": {
       "urlFilter": "*",
       "resourceTypes": [
-        "xmlhttprequest",
+        "main_frame",
         "sub_frame",
         "stylesheet",
         "script",
         "image",
         "font",
         "object",
+        "xmlhttprequest",
+        "ping",
+        "csp_report",
         "media",
-        "worker",
+        "websocket",
+        "webtransport",
+        "webbundle",
         "other"
       ]
     }

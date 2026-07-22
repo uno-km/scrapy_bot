@@ -56,16 +56,16 @@ function switchExtTab(browser) {
         const tabBtn = document.getElementById(`ext-tab-${b}`);
         const content = document.getElementById(`ext-content-${b}`);
         if (b === browser) {
-            tabBtn.classList.className = 'px-4 py-3 text-xs font-semibold text-slate-100 border-b-2 border-slate-100 whitespace-nowrap';
+            tabBtn.className = 'px-4 py-3 text-xs font-semibold text-slate-100 border-b-2 border-slate-100 whitespace-nowrap';
             content.classList.remove('hidden');
         } else {
-            tabBtn.classList.className = 'px-4 py-3 text-xs font-medium text-slate-500 border-b-2 border-transparent hover:text-slate-300 whitespace-nowrap';
+            tabBtn.className = 'px-4 py-3 text-xs font-medium text-slate-500 border-b-2 border-transparent hover:text-slate-300 whitespace-nowrap';
             content.classList.add('hidden');
         }
     });
 }
 
-// Tab Switching Logic (Fixes Visual Highlight Bug & Active Mode)
+// Tab Switching Logic (Fixes Visual Highlight & Active View Display)
 function switchTab(tabId) {
     currentActiveTab = tabId;
 
@@ -86,20 +86,14 @@ function switchTab(tabId) {
         accountTab.className = 'flex-1 py-3 text-center font-medium text-sm text-slate-400 bg-transparent border-b-2 border-transparent rounded-t-xl hover:text-slate-200 transition-all';
         
         urlView.classList.remove('hidden');
-        urlView.classList.replace('opacity-0', 'opacity-100');
-        
         accountView.classList.add('hidden');
-        accountView.classList.replace('opacity-100', 'opacity-0');
     } else {
         // Active Account Tab UI
         accountTab.className = 'flex-1 py-3 text-center font-bold text-sm text-white bg-slate-900 border-b-2 border-white rounded-t-xl transition-all';
         urlTab.className = 'flex-1 py-3 text-center font-medium text-sm text-slate-400 bg-transparent border-b-2 border-transparent rounded-t-xl hover:text-slate-200 transition-all';
         
         accountView.classList.remove('hidden');
-        accountView.classList.replace('opacity-0', 'opacity-100');
-        
         urlView.classList.add('hidden');
-        urlView.classList.replace('opacity-100', 'opacity-0');
     }
 }
 
@@ -159,20 +153,17 @@ async function startUrlDownload() {
             title = 'TikTok_Video';
             logToTerminal('TikWM API 파서 연결 중...', 'info', 'url');
             try {
-                const formData = new FormData();
-                formData.append('url', urlInput);
-                const res = await fetch('https://www.tikwm.com/api/', { method: 'POST', body: formData });
+                const res = await fetch(`https://www.tikwm.com/api/?url=${encodeURIComponent(urlInput)}`);
                 const json = await res.json();
                 if (json && json.data && json.data.play) {
                     mediaUrl = json.data.play;
                     title = `TikTok_${json.data.id || Date.now()}`;
                 }
             } catch (e) {
-                console.log('TikWM POST fallback error:', e);
+                console.log('TikWM GET fallback error:', e);
             }
 
             if (!mediaUrl) {
-                // Direct TikTok HTML Scraping
                 const response = await fetch(urlInput);
                 const htmlText = await response.text();
                 const playAddrMatch = htmlText.match(/"playAddr":"([^"]+)"/) || htmlText.match(/"downloadAddr":"([^"]+)"/);
@@ -243,7 +234,7 @@ res
     }
 }
 
-// Start Account Search (With Multi-Fallback for TikTok & Instagram)
+// Start Account Search (Simple GET Fetch to avoid CORS Preflight)
 async function startAccountSearch() {
     const platform = document.getElementById('platform-select').value;
     const accountInput = document.getElementById('account-input').value.replace('@', '').trim();
@@ -261,14 +252,29 @@ async function startAccountSearch() {
         let mediaItems = [];
 
         if (platform === 'tiktok') {
-            logToTerminal('TikTok 웹프로필 직접 스캔 중...', 'info', 'account');
+            logToTerminal('TikWM API 파서로 계정 피드 조회 중...', 'info', 'account');
             
-            // Method 1: Fetch TikTok HTML Profile Page
-            try {
+            // Simple GET Request (No OPTIONS preflight)
+            const res = await fetch(`https://www.tikwm.com/api/user/posts?unique_id=${encodeURIComponent(accountInput)}&count=12`);
+            if (res.ok) {
+                const json = await res.json();
+                if (json && json.data && json.data.videos) {
+                    mediaItems = json.data.videos.map(v => ({
+                        id: v.id,
+                        type: 'video',
+                        thumb: v.cover,
+                        url: v.play,
+                        title: v.title || `TikTok_${v.id}`
+                    }));
+                }
+            }
+
+            // Fallback: Direct TikTok HTML Scraping
+            if (mediaItems.length === 0) {
+                logToTerminal('TikTok 웹프로필 백업 직접 스캔 중...', 'info', 'account');
                 const tiktokHtmlRes = await fetch(`https://www.tiktok.com/@${encodeURIComponent(accountInput)}`);
                 if (tiktokHtmlRes.ok) {
                     const htmlText = await tiktokHtmlRes.text();
-                    // Extract JSON state inside TikTok HTML
                     const jsonMatch = htmlText.match(/<script id="__UNIVERSAL_DATA_FOR_REHYDRATION__"[^>]*>([^<]+)<\/script>/) || htmlText.match(/<script id="SIGI_STATE"[^>]*>([^<]+)<\/script>/);
                     if (jsonMatch) {
                         const jsonData = JSON.parse(jsonMatch[1]);
@@ -283,28 +289,6 @@ async function startAccountSearch() {
                             title: v.desc || `TikTok_${v.id}`
                         })).filter(item => item.url);
                     }
-                }
-            } catch (e) {
-                console.log('TikTok direct profile HTML fetch error:', e);
-            }
-
-            // Method 2: TikWM API Fallback
-            if (mediaItems.length === 0) {
-                logToTerminal('TikWM 백업 API로 계정 목록 조회 중...', 'info', 'account');
-                const formData = new FormData();
-                formData.append('unique_id', accountInput);
-                formData.append('count', '12');
-
-                const res = await fetch('https://www.tikwm.com/api/user/posts', { method: 'POST', body: formData });
-                const json = await res.json();
-                if (json && json.data && json.data.videos) {
-                    mediaItems = json.data.videos.map(v => ({
-                        id: v.id,
-                        type: 'video',
-                        thumb: v.cover,
-                        url: v.play,
-                        title: v.title || `TikTok_${v.id}`
-                    }));
                 }
             }
 
@@ -330,7 +314,7 @@ async function startAccountSearch() {
         }
 
         if (mediaItems.length === 0) {
-            throw new Error('해당 계정에서 공개 미디어를 찾지 못했습니다. 확장 프로그램이 켜져 있는지 확인하세요.');
+            throw new Error('해당 계정에서 공개 미디어를 찾지 못했습니다. 계정 아이디를 확인하고 확장 프로그램을 새로고침 해보세요.');
         }
 
         logToTerminal(`스캔 성공! 총 ${mediaItems.length}개의 미디어를 불러왔습니다.`, 'success', 'account');
